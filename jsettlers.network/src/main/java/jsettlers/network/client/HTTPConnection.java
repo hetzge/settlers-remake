@@ -56,9 +56,12 @@ public class HTTPConnection implements IClientConnection, Runnable {
 	private long downloadProgress = -1;
 	private final Object PROGRESS_SYNC = new Object();
 
-	public HTTPConnection(String url, Logger logger) {
-		log = logger;
+	public HTTPConnection(String url, Logger log) {
+		this.log = log;
 		this.url = url;
+	}
+
+	public void connect() {
 		new Thread(this, "http-connect-thread").start();
 	}
 
@@ -89,7 +92,7 @@ public class HTTPConnection implements IClientConnection, Runnable {
 			log.error(e);
 		}
 
-		while(true) {
+		while (true) {
 			Action nextAction;
 			try {
 				nextAction = actions.take();
@@ -100,22 +103,23 @@ public class HTTPConnection implements IClientConnection, Runnable {
 
 			try {
 				switch (nextAction.action) {
-					case GET_MAPS_DIR:
-						readIndex(nextAction.argument.toString());
-						break;
-					case DOWNLOAD_MAP: {
-						Object[] args = (Object[]) nextAction.argument;
-						download((String)args[0], (String)args[1], (Runnable)args[2]);
-						}
-						break;
-					case FIND_MAP: {
-						Object[] args = (Object[]) nextAction.argument;
-						findMap((String)args[0], (Consumer<String>)args[1]);
-						}
-						break;
-					case CLOSE:
-						if(lastConnection != null) lastConnection.disconnect();
-						return;
+				case GET_MAPS_DIR:
+					readIndex(nextAction.argument.toString());
+					break;
+				case DOWNLOAD_MAP: {
+					Object[] args = (Object[]) nextAction.argument;
+					download((String) args[0], (String) args[1], (Runnable) args[2]);
+				}
+					break;
+				case FIND_MAP: {
+					Object[] args = (Object[]) nextAction.argument;
+					findMap((String) args[0], (Consumer<String>) args[1]);
+				}
+					break;
+				case CLOSE:
+					if (lastConnection != null)
+						lastConnection.disconnect();
+					return;
 				}
 			} catch (Throwable e) {
 				log.error(e);
@@ -139,12 +143,12 @@ public class HTTPConnection implements IClientConnection, Runnable {
 			return;
 		}
 
-		if(lastConnection.getResponseCode() != HttpURLConnection.HTTP_OK) {
+		if (lastConnection.getResponseCode() != HttpURLConnection.HTTP_OK) {
 			arg1.accept(null);
 			return;
 		}
 
-		try(BufferedReader reader = new BufferedReader(new InputStreamReader(lastConnection.getInputStream()))) {
+		try (BufferedReader reader = new BufferedReader(new InputStreamReader(lastConnection.getInputStream()))) {
 			String line = reader.readLine();
 			arg1.accept(line);
 		}
@@ -156,18 +160,18 @@ public class HTTPConnection implements IClientConnection, Runnable {
 		AtomicReference<String> path = new AtomicReference<>(null);
 
 		finishLock.acquireUninterruptibly();
-		action(EClientAction.FIND_MAP, new Object[] {id,
-			(Consumer<String>) str -> {
-			path.set(str);
-			finishLock.release();
-		}});
+		action(EClientAction.FIND_MAP, new Object[] { id,
+				(Consumer<String>) str -> {
+					path.set(str);
+					finishLock.release();
+				} });
 
 		finishLock.acquireUninterruptibly();
 
 		return path.get();
 	}
 
-	private static final int BUFFER_SIZE = 256*1024;
+	private static final int BUFFER_SIZE = 256 * 1024;
 
 	private void download(String dir, String map, Runnable finish) throws IOException {
 		openResource(dir + map, "GET", 0L);
@@ -179,8 +183,8 @@ public class HTTPConnection implements IClientConnection, Runnable {
 		}
 
 		byte[] buffer = new byte[BUFFER_SIZE];
-		try(InputStream from = lastConnection.getInputStream();
-			OutputStream out = new FileOutputStream(str)) {
+		try (InputStream from = lastConnection.getInputStream();
+				OutputStream out = new FileOutputStream(str)) {
 			int read;
 			while ((read = from.read(buffer)) != -1) {
 				out.write(buffer, 0, read);
@@ -197,18 +201,19 @@ public class HTTPConnection implements IClientConnection, Runnable {
 
 	private void readIndex(String directory) throws IOException {
 		RemoteMapDirectory cached = mapDirectoryMap.get(directory);
-		long lastFetch = (cached==null) ? 0 : cached.date;
+		long lastFetch = (cached == null) ? 0 : cached.date;
 		long currentDate = new Date().getTime();
 
-		if(lastFetch+MIN_FETCH_DELAY>currentDate) return;
+		if (lastFetch + MIN_FETCH_DELAY > currentDate)
+			return;
 
 		openResource(directory + "index.json", "GET", lastFetch);
-		if(cached != null && lastConnection.getResponseCode() == HttpURLConnection.HTTP_NOT_MODIFIED) {
+		if (cached != null && lastConnection.getResponseCode() == HttpURLConnection.HTTP_NOT_MODIFIED) {
 			cached.date = currentDate;
 			return;
 		}
 		RemoteMapDirectory index;
-		try(Reader reader = new InputStreamReader(lastConnection.getInputStream())) {
+		try (Reader reader = new InputStreamReader(lastConnection.getInputStream())) {
 			index = GSON.fromJson(reader, RemoteMapDirectory.class);
 		} finally {
 			finishProgress();
@@ -229,17 +234,19 @@ public class HTTPConnection implements IClientConnection, Runnable {
 		}
 		try {
 			HttpURLConnection connection = (HttpURLConnection) new URL(url + res).openConnection();
-			if(lastFetch == 0) connection.setIfModifiedSince(lastFetch);
+			if (lastFetch == 0)
+				connection.setIfModifiedSince(lastFetch);
 			connection.setConnectTimeout(TIMEOUT);
 			connection.setReadTimeout(TIMEOUT);
 			connection.setRequestMethod(method);
 			connection.connect();
-			if(lastConnection != null) lastConnection.disconnect();
+			if (lastConnection != null)
+				lastConnection.disconnect();
 			lastConnection = connection;
 			lastStatus = connection.getResponseCode();
-		} catch(Throwable e) {
+		} catch (Throwable e) {
 			lastStatus = -1;
-			if(lastConnection != null) {
+			if (lastConnection != null) {
 				lastConnection.disconnect();
 				lastConnection = null;
 			}

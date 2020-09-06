@@ -17,12 +17,15 @@ package jsettlers.main;
 import java.io.IOException;
 import java.net.UnknownHostException;
 
+import jsettlers.network.NetworkConstants;
 import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.client.NetworkClient;
 import jsettlers.network.client.interfaces.INetworkClient;
 import jsettlers.network.client.receiver.IPacketReceiver;
 import jsettlers.network.common.packets.ArrayOfMatchInfosPacket;
+import jsettlers.network.infrastructure.channel.AsyncChannel;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
+import jsettlers.network.synchronic.timer.NetworkTimer;
 
 /**
  * 
@@ -31,48 +34,27 @@ import jsettlers.network.infrastructure.channel.reject.RejectPacket;
  */
 public class AsyncNetworkClientConnector {
 
-	private final Object lock = new Object();
-	private INetworkClient networkClient = null;
-	private AsyncNetworkClientFactoryState state = AsyncNetworkClientFactoryState.CONNECTING_TO_SERVER;
+	private final Object lock;
+	private final String serverAddress;
+	private final String userId;
+	private final String userName;
+	private final IPacketReceiver<ArrayOfMatchInfosPacket> matchesRetriever;
+	private INetworkClient networkClient;
+	private AsyncNetworkClientFactoryState state;
 
-	public AsyncNetworkClientConnector(final String serverAddress, final String userId, final String userName,
-			final IPacketReceiver<ArrayOfMatchInfosPacket> matchesRetriever) {
-		new Thread("AsyncNetworkClientConnector") {
-			@Override
-			public void run() {
-				try {
-					networkClient = new NetworkClient(serverAddress, null);
-					networkClient.registerRejectReceiver(generateRejectReceiver());
-					networkClient.logIn(userId, userName, generateMatchesRetriever(matchesRetriever));
-				} catch (IllegalStateException e) {
-					e.printStackTrace(); // this can never happen
-					setState(AsyncNetworkClientFactoryState.FAILED_CONNECTING);
-				} catch (UnknownHostException e) {
-					e.printStackTrace();
-					setState(AsyncNetworkClientFactoryState.FAILED_SERVER_NOT_FOUND);
-				} catch (IOException e) {
-					e.printStackTrace();
-					setState(AsyncNetworkClientFactoryState.FAILED_CONNECTING);
-				}
-			}
+	public AsyncNetworkClientConnector(String serverAddress, String userId, String userName,
+			IPacketReceiver<ArrayOfMatchInfosPacket> matchesRetriever) {
+		this.userId = userId;
+		this.userName = userName;
+		this.matchesRetriever = matchesRetriever;
+		this.lock = new Object();
+		this.serverAddress = serverAddress;
+		this.networkClient = null;
+		this.state = AsyncNetworkClientFactoryState.CONNECTING_TO_SERVER;
+	}
 
-			private IPacketReceiver<RejectPacket> generateRejectReceiver() {
-				return packet -> {
-					if (packet.getRejectedKey() == ENetworkKey.IDENTIFY_USER) {
-						setState(AsyncNetworkClientFactoryState.FAILED_CONNECTING);
-					}
-					System.out.println("Received reject packet: " + packet.getRejectedKey() + " messageid: " + packet.getErrorMessageId());
-				};
-			}
-
-			private IPacketReceiver<ArrayOfMatchInfosPacket> generateMatchesRetriever(final IPacketReceiver<ArrayOfMatchInfosPacket> matchesRetriever) {
-				return packet -> {
-					setState(AsyncNetworkClientFactoryState.CONNECTED_TO_SERVER);
-					matchesRetriever.receivePacket(packet);
-				};
-			}
-
-		}.start();
+	public void connect() {
+		new AsyncNetworkClientConnectorThread().start();
 	}
 
 	private void setState(AsyncNetworkClientFactoryState state) {
@@ -127,6 +109,54 @@ public class AsyncNetworkClientConnector {
 		FAILED_SERVER_NOT_FOUND,
 
 		CLOSED,
+	}
+
+	private class AsyncNetworkClientConnectorThread extends Thread {
+
+		public AsyncNetworkClientConnectorThread() {
+			super("AsyncNetworkClientConnector");
+		}
+
+		@Override
+		public void run() {
+			try {
+				AsyncChannel channel = new AsyncChannel(serverAddress, NetworkConstants.Server.SERVER_PORT);
+				channel.setChannelClosedListener(() -> {
+					close();
+				});
+				NetworkClient client = new NetworkClient(channel, new NetworkTimer());
+				client.registerRejectReceiver(generateRejectReceiver());
+				client.logIn(userId, userName, generateMatchesRetriever(matchesRetriever));
+				networkClient = client;
+				channel.start();
+			} catch (IllegalStateException e) {
+				e.printStackTrace(); // this can never happen
+				setState(AsyncNetworkClientFactoryState.FAILED_CONNECTING);
+			} catch (UnknownHostException e) {
+				e.printStackTrace();
+				setState(AsyncNetworkClientFactoryState.FAILED_SERVER_NOT_FOUND);
+			} catch (IOException e) {
+				e.printStackTrace();
+				setState(AsyncNetworkClientFactoryState.FAILED_CONNECTING);
+			}
+		}
+
+		private IPacketReceiver<RejectPacket> generateRejectReceiver() {
+			return packet -> {
+				if (packet.getRejectedKey() == ENetworkKey.IDENTIFY_USER) {
+					setState(AsyncNetworkClientFactoryState.FAILED_CONNECTING);
+				}
+				System.out.println("Received reject packet: " + packet.getRejectedKey() + " messageid: " + packet.getErrorMessageId());
+			};
+		}
+
+		private IPacketReceiver<ArrayOfMatchInfosPacket> generateMatchesRetriever(final IPacketReceiver<ArrayOfMatchInfosPacket> matchesRetriever) {
+			return packet -> {
+				setState(AsyncNetworkClientFactoryState.CONNECTED_TO_SERVER);
+				matchesRetriever.receivePacket(packet);
+			};
+		}
+
 	}
 
 }

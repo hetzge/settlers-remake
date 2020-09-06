@@ -31,7 +31,7 @@ public class AsyncChannel extends Channel {
 	private final LinkedBlockingQueue<PacketWithKey> sendBuffer = new LinkedBlockingQueue<>();
 	private final Thread senderThread;
 
-	public AsyncChannel(String host, int port) throws  IOException {
+	public AsyncChannel(String host, int port) throws IOException {
 		super(host, port);
 		senderThread = createSenderThread(host + ":" + port);
 	}

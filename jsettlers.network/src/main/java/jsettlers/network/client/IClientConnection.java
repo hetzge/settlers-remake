@@ -15,6 +15,8 @@
 package jsettlers.network.client;
 
 public interface IClientConnection {
+	
+	void connect();
 	boolean hasConnectionFailed();
 	boolean isConnected();
 

@@ -21,11 +21,15 @@ import static org.junit.Assert.assertTrue;
 import java.io.IOException;
 import java.util.List;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+
 import jsettlers.network.NetworkConstants;
-import jsettlers.network.TestUtils;
 import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.NetworkConstants.ENetworkMessage;
-import jsettlers.network.client.NetworkClient;
+import jsettlers.network.TestUtils;
 import jsettlers.network.client.receiver.BufferingPacketReceiver;
 import jsettlers.network.client.task.TestTaskPacket;
 import jsettlers.network.client.task.packets.TaskPacket;
@@ -43,11 +47,6 @@ import jsettlers.network.server.ServerManager;
 import jsettlers.network.server.db.inMemory.InMemoryDB;
 import jsettlers.network.server.match.EPlayerState;
 import jsettlers.network.server.match.Player;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Test;
 
 /**
  * Tests the {@link NetworkClient}s interaction with the server.
@@ -84,7 +83,7 @@ public class NetworkClientIT {
 		clock1 = new NetworkClientClockMock();
 		clock2 = new NetworkClientClockMock();
 
-		client1 = new NetworkClient(client1Channel, null, clock1);
+		client1 = new NetworkClient(client1Channel, clock1);
 		manager.identifyNewChannel(server1Channel);
 
 		// set up second client
@@ -92,7 +91,7 @@ public class NetworkClientIT {
 		client2Channel = channels[0];
 		server2Channel = channels[1];
 
-		client2 = new NetworkClient(client2Channel, null, clock2);
+		client2 = new NetworkClient(client2Channel, clock2);
 		manager.identifyNewChannel(server2Channel);
 	}
 

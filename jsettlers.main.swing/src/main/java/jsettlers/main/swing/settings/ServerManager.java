@@ -84,12 +84,11 @@ public class ServerManager {
 		}
 	}
 
+	private List<ServerEntry> servers;
 
 	public ServerManager() {
 		servers = new ArrayList<>();
 	}
-
-	private List<ServerEntry> servers;
 
 	public void addServer(ServerEntry server) {
 		servers.add(server);

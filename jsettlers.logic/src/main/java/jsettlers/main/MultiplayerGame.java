@@ -53,24 +53,22 @@ import jsettlers.network.server.match.EPlayerState;
  */
 public class MultiplayerGame {
 
-	private final AsyncNetworkClientConnector networkClientFactory;
 	private final ChangingList<IMultiplayerPlayer> playersList = new ChangingList<>();
-	private INetworkClient networkClient;
+	private final INetworkClient networkClient;
 
 	private IJoiningGameListener joiningGameListener;
 	private IMultiplayerListener multiplayerListener;
 	private IChatMessageListener chatMessageListener;
 	private boolean iAmTheHost = false;
 
-	public MultiplayerGame(AsyncNetworkClientConnector networkClientFactory) {
-		this.networkClientFactory = networkClientFactory;
+	public MultiplayerGame(INetworkClient networkClient) {
+		this.networkClient = networkClient;
 	}
 
 	public IJoiningGame join(final String matchId) {
 		new Thread("joinGameThread") {
 			@Override
 			public void run() {
-				networkClient = networkClientFactory.getNetworkClient();
 				networkClient.joinMatch(matchId, generateMatchStartedListener(), generateMatchInfoUpdatedListener(), generateChatMessageReceiver());
 			}
 		}.start();
@@ -82,8 +80,6 @@ public class MultiplayerGame {
 		new Thread("openNewGameThread") {
 			@Override
 			public void run() {
-				networkClient = networkClientFactory.getNetworkClient();
-
 				IMapDefinition mapDefintion = gameInfo.getMapDefinition();
 				MapInfoPacket mapInfo = new MapInfoPacket(mapDefintion.getMapId(), mapDefintion.getMapName(), "", "", mapDefintion.getMaxPlayers());
 
@@ -139,7 +135,7 @@ public class MultiplayerGame {
 		PlayerSetting[] playerSettings = new PlayerSetting[availablePlayers.length];
 
 		byte i = 0;
-		for(IMultiplayerPlayer next : playersList.getItems()) {
+		for (IMultiplayerPlayer next : playersList.getItems()) {
 			playerSettings[i] = new PlayerSetting(EPlayerType.HUMAN, next.getCivilisation(), next.getTeamId());
 			i++;
 		}

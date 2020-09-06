@@ -29,27 +29,29 @@ import jsettlers.network.client.interfaces.INetworkClient;
 import jsettlers.network.client.receiver.IPacketReceiver;
 import jsettlers.network.common.packets.ArrayOfMatchInfosPacket;
 import jsettlers.network.common.packets.MatchInfoPacket;
-import jsettlers.network.infrastructure.log.Logger;
 
 /**
- * This class implements the {@link IMultiplayerConnector} interface and supports the UI with the list of available multiplayer games and allows to
- * start or create them.
+ * This class implements the {@link IMultiplayerConnector} interface and supports the UI with the list of available multiplayer games and allows to start or create them.
  * 
  * @author Andreas Eberle
  * 
  */
 public class MultiplayerConnector implements IMultiplayerConnector, IClientConnection {
 
-	private final AsyncNetworkClientConnector networkClientFactory;
+	private final AsyncNetworkClientConnector networkClientConnector;
 	private final ChangingList<IJoinableGame> joinableGames = new ChangingList<>();
 
 	private final String userId;
 	private final String userName;
 
-	public MultiplayerConnector(final String serverAddress, final String userId, final String userName, Logger log) {
+	public MultiplayerConnector(String serverAddress, String userId, String userName) {
+		this.networkClientConnector = new AsyncNetworkClientConnector(serverAddress, userId, userName, generateMatchesReceiver());
 		this.userId = userId;
 		this.userName = userName;
-		networkClientFactory = new AsyncNetworkClientConnector(serverAddress, userId, userName, generateMatchesReceiver());
+	}
+
+	public void connect() {
+		this.networkClientConnector.connect();
 	}
 
 	private IPacketReceiver<ArrayOfMatchInfosPacket> generateMatchesReceiver() {
@@ -69,19 +71,19 @@ public class MultiplayerConnector implements IMultiplayerConnector, IClientConne
 
 	@Override
 	public IJoiningGame joinMultiplayerGame(IJoinableGame game) throws IllegalStateException {
-		MultiplayerGame multiplayerGame = new MultiplayerGame(networkClientFactory);
+		MultiplayerGame multiplayerGame = new MultiplayerGame(networkClientConnector.getNetworkClient());
 		return multiplayerGame.join(game.getId());
 	}
 
 	@Override
 	public IJoiningGame openNewMultiplayerGame(IOpenMultiplayerGameInfo gameInfo) {
-		MultiplayerGame multiplayerGame = new MultiplayerGame(networkClientFactory);
+		MultiplayerGame multiplayerGame = new MultiplayerGame(networkClientConnector.getNetworkClient());
 		return multiplayerGame.openNewGame(gameInfo);
 	}
 
 	@Override
 	public int getRoundTripTimeInMs() {
-		INetworkClient networkClient = networkClientFactory.getNetworkClientAsync();
+		INetworkClient networkClient = networkClientConnector.getNetworkClientAsync();
 		if (networkClient != null) {
 			return networkClient.getRoundTripTimeInMs();
 		} else {
@@ -101,13 +103,14 @@ public class MultiplayerConnector implements IMultiplayerConnector, IClientConne
 
 	@Override
 	public boolean hasConnectionFailed() {
-		AsyncNetworkClientConnector.AsyncNetworkClientFactoryState state = networkClientFactory.getState();
-		return state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.FAILED_CONNECTING || state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.FAILED_SERVER_NOT_FOUND || state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.CLOSED;
+		AsyncNetworkClientConnector.AsyncNetworkClientFactoryState state = networkClientConnector.getState();
+		return state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.FAILED_CONNECTING || state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.FAILED_SERVER_NOT_FOUND
+				|| state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.CLOSED;
 	}
 
 	@Override
 	public boolean isConnected() {
-		return !hasConnectionFailed() && networkClientFactory.getNetworkClientAsync() != null;
+		return !hasConnectionFailed() && networkClientConnector.getNetworkClientAsync() != null;
 	}
 
 	@Override
@@ -133,13 +136,13 @@ public class MultiplayerConnector implements IMultiplayerConnector, IClientConne
 	@Override
 	public void action(EClientAction action, Object argument) {
 		switch (action) {
-			case CLOSE:
-				networkClientFactory.close();
-				break;
-			case FIND_MAP:
-			case DOWNLOAD_MAP:
-			case GET_MAPS_DIR:
-				break;
+		case CLOSE:
+			networkClientConnector.close();
+			break;
+		case FIND_MAP:
+		case DOWNLOAD_MAP:
+		case GET_MAPS_DIR:
+			break;
 		}
 	}
 }

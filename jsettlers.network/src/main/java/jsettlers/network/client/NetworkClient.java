@@ -62,41 +62,16 @@ public class NetworkClient implements ITaskScheduler, INetworkConnector, INetwor
 	private final Timer timer;
 	private final INetworkClientClock clock;
 
-	private EPlayerState state = EPlayerState.CHANNEL_CONNECTED;
+	private EPlayerState state;
 	private PlayerInfoPacket playerInfo;
 
 	private MatchInfoPacket matchInfo;
 
-	/**
-	 * 
-	 * @param channel
-	 * @param channelClosedListener
-	 *            The listener to be called when the channel is closed<br>
-	 *            or null, if no listener should be registered.
-	 */
-	public NetworkClient(AsyncChannel channel, IChannelClosedListener channelClosedListener) {
-		this(channel, channelClosedListener, new NetworkTimer());
-	}
-
-	public NetworkClient(String serverAddress, IChannelClosedListener channelClosedListener) throws IOException {
-		this(new AsyncChannel(serverAddress, NetworkConstants.Server.SERVER_PORT), channelClosedListener);
-	}
-
-	NetworkClient(AsyncChannel channel, final IChannelClosedListener channelClosedListener, INetworkClientClock gameClock) {
+	public NetworkClient(AsyncChannel channel, INetworkClientClock gameClock) {
 		this.channel = channel;
-		channel.setChannelClosedListener(() -> {
-			close();
-
-			if (channelClosedListener != null)
-				channelClosedListener.channelClosed();
-		});
-
 		this.timer = new Timer("NetworkClientTimer");
 		this.clock = gameClock;
-
-		if (!channel.isStarted()) {
-			channel.start();
-		}
+		this.state = EPlayerState.CHANNEL_CONNECTED;
 	}
 
 	@Override
