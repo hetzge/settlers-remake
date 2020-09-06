@@ -156,7 +156,7 @@ public class PlayerSlot {
 		});
 		teamComboBox.addActionListener(e -> {
 			if(gameToBeInformedAboutReady != null) {
-				gameToBeInformedAboutReady.setTeamId((byte)teamComboBox.getSelectedItem());
+				gameToBeInformedAboutReady.setTeamId(getTeam());
 			}
 		});
 	}
