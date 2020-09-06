@@ -84,22 +84,25 @@ public class ServerEntry implements Cloneable {
 	}
 
 	public void setAlias(String alias) {
-		if(connection != null) throw new AssertionError();
+		if (connection != null)
+			throw new AssertionError();
 		this.alias = alias;
 	}
 
 	public void setType(EServerType type) {
-		if(connection != null) throw new AssertionError();
+		if (connection != null)
+			throw new AssertionError();
 		this.type = type;
 
-		if(type == EServerType.JSETTLERS) {
+		if (type == EServerType.JSETTLERS) {
 			setUUID(UUID.randomUUID());
-			//if(username == null) username = SettingsManager.getInstance().getUserName();
+			// if(username == null) username = SettingsManager.getInstance().getUserName();
 		}
 	}
 
 	public void setAddress(String address) {
-		if(connection != null) throw new AssertionError();
+		if (connection != null)
+			throw new AssertionError();
 		this.address = address;
 	}
 
@@ -112,8 +115,10 @@ public class ServerEntry implements Cloneable {
 	}
 
 	public void setURL(String url) {
-		if(connection != null) throw new AssertionError();
-		if(URL_EMPTY.equals(url)) return;
+		if (connection != null)
+			throw new AssertionError();
+		if (URL_EMPTY.equals(url))
+			return;
 		this.url = url;
 	}
 
@@ -137,12 +142,12 @@ public class ServerEntry implements Cloneable {
 		});
 
 		switch (type) {
-			case HTTP:
-				connection = new HTTPConnection(url, log);
-				break;
-			case JSETTLERS:
-				connection = new MultiplayerConnector(address, uuid, username, log);
-				break;
+		case HTTP:
+			connection = new HTTPConnection(url, log);
+			break;
+		case JSETTLERS:
+			connection = new MultiplayerConnector(address, uuid, username, log);
+			break;
 		}
 	}
 
@@ -194,7 +199,7 @@ public class ServerEntry implements Cloneable {
 		private JLabel authIcon = new JLabel(Labels.getString("multiplayer-indicator-auth"));
 		private JLabel online = new JLabel();
 
-		public ServerEntryCellRenderer() {;
+		public ServerEntryCellRenderer() {
 
 			southPanel.setLayout(new FlowLayout());
 			southPanel.add(matchIcon);
@@ -224,9 +229,9 @@ public class ServerEntry implements Cloneable {
 			serverName.setText(serverEntry.alias);
 
 			IClientConnection connection = serverEntry.getConnection();
-			if(connection.isConnected()) {
+			if (connection.isConnected()) {
 				status.setText(Labels.getString("multiplayer-online"));
-			} else if(connection.hasConnectionFailed()){
+			} else if (connection.hasConnectionFailed()) {
 				status.setText(Labels.getString("multiplayer-offline"));
 			} else {
 				status.setText(Labels.getString("multiplayer-connecting"));
@@ -243,7 +248,7 @@ public class ServerEntry implements Cloneable {
 			}
 
 			setColor(connection.isConnected() && connection instanceof IMultiplayerConnector, matchIcon);
-			setColor(connection.getMaps("/")!=null, mapsIcon);
+			setColor(connection.getMaps("/") != null, mapsIcon);
 			setColor(false, resIcon);
 			setColor(false, authIcon);
 
