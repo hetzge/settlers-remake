@@ -154,6 +154,7 @@ public class JoinGamePanel extends BackgroundPanel {
 		chatPanel.setLayout(new BorderLayout(0, 10));
 		JPanel chatInputPanel = new JPanel();
 		chatInputPanel.setLayout(new BorderLayout(10, 0));
+		chatArea.setEditable(false);
 		chatPanel.add(new JScrollPane(chatArea), BorderLayout.CENTER);
 		chatPanel.add(chatInputPanel, BorderLayout.SOUTH);
 		chatInputPanel.add(chatInputField, BorderLayout.CENTER);
