@@ -32,6 +32,10 @@ public enum EPlayerType {
 	}
 
 	public boolean isAi() {
-		return !(HUMAN == this);
+		return !isHuman();
+	}
+	
+	public boolean isHuman() {
+		return HUMAN == this;
 	}
 }

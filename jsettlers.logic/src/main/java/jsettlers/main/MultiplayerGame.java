@@ -139,7 +139,7 @@ public class MultiplayerGame {
 		PlayerSetting[] playerSettings = new PlayerSetting[availablePlayers.length];
 
 		byte i = 0;
-		for(IMultiplayerPlayer next : playersList.getItems()) {
+		for (IMultiplayerPlayer next : playersList.getItems()) {
 			playerSettings[i] = new PlayerSetting(EPlayerType.HUMAN, next.getCivilisation(), next.getTeamId());
 			i++;
 		}

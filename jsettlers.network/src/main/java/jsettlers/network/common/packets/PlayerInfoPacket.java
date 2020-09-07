@@ -134,4 +134,8 @@ public class PlayerInfoPacket extends Packet {
 		return ready == other.ready;
 	}
 
+	@Override
+	public String toString() {
+		return String.format("PlayerInfoPacket [id=%s, name=%s, ready=%s, startFinished=%s, civilisation=%s, teamId=%s]", id, name, ready, startFinished, civilisation, teamId);
+	}
 }
