@@ -129,7 +129,7 @@ public class JoinGamePanel extends BackgroundPanel {
 		JPanel settingsPanelWrapper = new JPanel();
 		westPanel.add(settingsPanelWrapper, BorderLayout.CENTER);
 		settingsPanelWrapper.add(settingsPanel);
-		//settingsPanel.setLayout(new GridLayout(0, 2, 20, 0));
+		// settingsPanel.setLayout(new GridLayout(0, 2, 20, 0));
 		JPanel settingsLabelPanel = new JPanel();
 		settingsLabelPanel.setLayout(new GridLayout(3, 0, 0, 20));
 		JPanel settingsComboBoxPanel = new JPanel();
@@ -159,7 +159,7 @@ public class JoinGamePanel extends BackgroundPanel {
 		chatPanel.add(chatInputPanel, BorderLayout.SOUTH);
 		chatInputPanel.add(chatInputField, BorderLayout.CENTER);
 		chatInputPanel.add(sendChatMessageButton, BorderLayout.EAST);
-		
+
 		playerSlotsPanel.setLayout(new GridBagLayout());
 		playerSlotsPanel.setBorder(new EmptyBorder(20, 25, 20, 20));
 		JPanel southPanel = new JPanel();
@@ -168,7 +168,7 @@ public class JoinGamePanel extends BackgroundPanel {
 		southPanel.add(cancelButton);
 		startGameButton.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 15));
 		southPanel.add(startGameButton);
-		
+
 		JPanel content = new JPanel(new GridBagLayout());
 		content.add(titleLabel, new GBC().grid(0, 0).size(2, 1).fillx().insets(0, 0, 30, 0));
 		content.add(westPanel, new GBC().grid(0, 1).size(1, 3).filly());
@@ -274,17 +274,7 @@ public class JoinGamePanel extends BackgroundPanel {
 					initializeChatFor(connector);
 					setStartButtonActionListener(e -> connector.startGame());
 					connector.getPlayers().setListener(changingPlayers -> onPlayersChanges(changingPlayers, connector, myId));
-					connector.setMultiplayerListener(new IMultiplayerListener() {
-						@Override
-						public void gameIsStarting(IStartingGame game) {
-							settlersFrame.showStartingGamePanel(game);
-						}
-
-						@Override
-						public void gameAborted() {
-							settlersFrame.showMainMenu();
-						}
-					});
+					connector.setMultiplayerListener(new MultiplayerListener());
 
 					onPlayersChanges(connector.getPlayers(), connector, myId); // init the UI with the players
 				});
@@ -299,7 +289,7 @@ public class JoinGamePanel extends BackgroundPanel {
 		prepareUiFor(mapLoader);
 	}
 
-	public void setJoinMultiPlayerMap(IJoinPhaseMultiplayerGameConnector joinMultiPlayerMap, MapLoader mapLoader, String playerUUID) {
+	public void setJoinMultiPlayerMap(IJoinPhaseMultiplayerGameConnector gameConnector, MapLoader mapLoader, String playerUUID) {
 		playerSlotFactory = new ClientOfMultiplayerPlayerSlotFactory();
 		titleLabel.setText(Labels.getString("join-game-panel-join-multi-player-game-title"));
 		numberOfPlayersComboBox.setEnabled(false);
@@ -311,21 +301,11 @@ public class JoinGamePanel extends BackgroundPanel {
 
 		prepareUiFor(mapLoader);
 
-		joinMultiPlayerMap.getPlayers().setListener(changingPlayers -> onPlayersChanges(changingPlayers, joinMultiPlayerMap, playerUUID));
-		joinMultiPlayerMap.setMultiplayerListener(new IMultiplayerListener() {
-			@Override
-			public void gameIsStarting(IStartingGame game) {
-				settlersFrame.showStartingGamePanel(game);
-			}
+		gameConnector.getPlayers().setListener(changingPlayers -> onPlayersChanges(changingPlayers, gameConnector, playerUUID));
+		gameConnector.setMultiplayerListener(new MultiplayerListener());
+		initializeChatFor(gameConnector);
 
-			@Override
-			public void gameAborted() {
-				settlersFrame.showMainMenu();
-			}
-		});
-		initializeChatFor(joinMultiPlayerMap);
-
-		onPlayersChanges(joinMultiPlayerMap.getPlayers(), joinMultiPlayerMap, playerUUID); // init the UI with the players
+		onPlayersChanges(gameConnector.getPlayers(), gameConnector, playerUUID); // init the UI with the players
 	}
 
 	private void initializeChatFor(IJoinPhaseMultiplayerGameConnector joinMultiPlayerMap) {
@@ -362,29 +342,30 @@ public class JoinGamePanel extends BackgroundPanel {
 		chatInputField.setText("");
 	}
 
-	private void onPlayersChanges(ChangingList<? extends IMultiplayerPlayer> changingPlayers, IJoinPhaseMultiplayerGameConnector joinMultiPlayerMap, String myId) {
+	private void onPlayersChanges(ChangingList<? extends IMultiplayerPlayer> changingPlayers, IJoinPhaseMultiplayerGameConnector gameConnector, String myId) {
 		SwingUtilities.invokeLater(() -> {
 			List<? extends IMultiplayerPlayer> players = changingPlayers.getItems();
+			
+			// update multiplayer players
 			for (int i = 0; i < players.size(); i++) {
-				PlayerSlot playerSlot = playerSlots.get(i);
 				IMultiplayerPlayer player = players.get(i);
-				playerSlot.setPlayerName(player.getName());
-				playerSlot.setPlayerType(EPlayerType.HUMAN, false);
-				playerSlot.setReady(player.isReady());
-				playerSlot.setCivilisation(player.getCivilisation());
-				playerSlot.setTeam(player.getTeamId());
+				PlayerSlot playerSlot = playerSlots.get(i);
+				playerSlot.set(player);
 				if (player.getId().equals(myId)) {
 					playerSlot.setReadyButtonEnabled(true);
-					playerSlot.informGameAboutReady(joinMultiPlayerMap);
+					playerSlot.setGameConnector(gameConnector);
 				} else {
 					playerSlot.setReadyButtonEnabled(false);
 				}
 			}
+			
+			// update other players
 			for (int i = players.size(); i < playerSlots.size(); i++) {
 				playerSlots.get(i).setPlayerType(EPlayerType.AI_VERY_HARD, false);
 			}
+			
 			setCancelButtonActionListener(e -> {
-				joinMultiPlayerMap.abort();
+				gameConnector.abort();
 				settlersFrame.showMainMenu();
 			});
 		});
@@ -505,6 +486,18 @@ public class JoinGamePanel extends BackgroundPanel {
 		constraints.gridwidth = 1;
 		constraints.fill = GridBagConstraints.HORIZONTAL;
 		playerSlotsPanel.add(slotsHeadlineTeam, constraints);
+	}
+
+	private final class MultiplayerListener implements IMultiplayerListener {
+		@Override
+		public void gameIsStarting(IStartingGame game) {
+			settlersFrame.showStartingGamePanel(game);
+		}
+
+		@Override
+		public void gameAborted() {
+			settlersFrame.showMainMenu();
+		}
 	}
 
 	private enum EPeaceTime {

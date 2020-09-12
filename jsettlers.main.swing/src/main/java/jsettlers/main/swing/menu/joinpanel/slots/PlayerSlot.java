@@ -16,6 +16,7 @@ package jsettlers.main.swing.menu.joinpanel.slots;
 
 import jsettlers.common.ai.EPlayerType;
 import jsettlers.common.menu.IJoinPhaseMultiplayerGameConnector;
+import jsettlers.common.menu.IMultiplayerPlayer;
 import jsettlers.common.player.ECivilisation;
 import jsettlers.graphics.image.SingleImage;
 import jsettlers.graphics.localization.Labels;
@@ -48,20 +49,27 @@ public class PlayerSlot {
 	public static final ImageIcon NOT_READY_PRESSED_IMAGE = new ImageIcon(getReadyButtonImage(2, 18, 1, true));
 	public static final ImageIcon NOT_READY_DISABLED_IMAGE = new ImageIcon(getReadyButtonImage(2, 18, 0, false));
 
-	private final JLabel playerNameLabel = new JLabel();
-	private final JComboBox<CivilisationUiWrapper> civilisationComboBox = new JComboBox<>();
-	private final JComboBox<PlayerTypeUiWrapper> typeComboBox = new JComboBox<>();
-	private final JComboBox<Byte> slotComboBox = new JComboBox<>();
-	private final JComboBox<Byte> teamComboBox = new JComboBox<>();
-	private final JButton readyButton = new JButton();
+	private final JLabel playerNameLabel;
+	private final JComboBox<CivilisationUiWrapper> civilisationComboBox;
+	private final JComboBox<PlayerTypeUiWrapper> typeComboBox;
+	private final JComboBox<Byte> slotComboBox;
+	private final JComboBox<Byte> teamComboBox;
+	private final JButton readyButton;
 	private byte oldSlotValue;
 	private ISlotListener slotListener;
 	private boolean isAvailable;
 	private boolean isReady = true;
-	private IJoinPhaseMultiplayerGameConnector gameToBeInformedAboutReady;
+	private IJoinPhaseMultiplayerGameConnector gameConnector;
 
 	public PlayerSlot() {
+		playerNameLabel = new JLabel();
+		civilisationComboBox = new JComboBox<>();
+		typeComboBox = new JComboBox<>();
+		slotComboBox = new JComboBox<>();
+		teamComboBox = new JComboBox<>();
+		readyButton = new JButton();
 		isAvailable = true;
+
 		setStyle();
 		localize();
 		addListener();
@@ -138,8 +146,8 @@ public class PlayerSlot {
 		civilisationComboBox.addActionListener(e -> {
 			updateAiPlayerName();
 
-			if (gameToBeInformedAboutReady != null) {
-				gameToBeInformedAboutReady.setCivilisation(getCivilisation());
+			if (gameConnector != null) {
+				gameConnector.setCivilisation(getCivilisation());
 			}
 		});
 		slotComboBox.addActionListener(e -> {
@@ -150,13 +158,13 @@ public class PlayerSlot {
 		});
 		readyButton.addActionListener(e -> {
 			setReady(!isReady());
-			if (gameToBeInformedAboutReady != null) {
-				gameToBeInformedAboutReady.setReady(isReady());
+			if (gameConnector != null) {
+				gameConnector.setReady(isReady());
 			}
 		});
 		teamComboBox.addActionListener(e -> {
-			if (gameToBeInformedAboutReady != null) {
-				gameToBeInformedAboutReady.setTeamId(getTeam());
+			if (gameConnector != null) {
+				gameConnector.setTeamId(getTeam());
 			}
 		});
 	}
@@ -178,8 +186,16 @@ public class PlayerSlot {
 
 	private void initializeComboBoxes() {
 		civilisationComboBox.addItem(new CivilisationUiWrapper());
-		for (ECivilisation civ : ECivilisation.values())
-			civilisationComboBox.addItem(new CivilisationUiWrapper(civ));
+		for (ECivilisation civilisation : ECivilisation.values())
+			civilisationComboBox.addItem(new CivilisationUiWrapper(civilisation));
+	}
+	
+	public void set(IMultiplayerPlayer player) {
+		setPlayerName(player.getName());
+		setPlayerType(EPlayerType.HUMAN, false);
+		setTeam(player.getTeamId());
+		setReady(player.isReady());
+		setCivilisation(player.getCivilisation());
 	}
 
 	public void setPlayerName(String playerName) {
@@ -290,8 +306,8 @@ public class PlayerSlot {
 		}
 	}
 
-	public void informGameAboutReady(IJoinPhaseMultiplayerGameConnector gameToBeInformedAboutReady) {
-		this.gameToBeInformedAboutReady = gameToBeInformedAboutReady;
+	public void setGameConnector(IJoinPhaseMultiplayerGameConnector gameConnector) {
+		this.gameConnector = gameConnector;
 	}
 
 	private static Image getReadyButtonImage(int file, int seq, int imagenumber, boolean imageIsForEnabledState) {
