@@ -8,7 +8,6 @@ import java.util.Objects;
 
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.server.lobby.core.Civilisation;
-import jsettlers.network.server.lobby.core.Level;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
@@ -31,10 +30,9 @@ public final class MatchPacket extends Packet {
 
 	@Override
 	public void serialize(DataOutputStream dos) throws IOException {
-		dos.writeUTF(match.getLevel().getId().getValue());
-		dos.writeUTF(match.getLevel().getName());
-		dos.writeInt(match.getLevel().getNumberOfPlayers());
-		for (int i = 0; i < match.getLevel().getNumberOfPlayers(); i++) {
+		dos.writeUTF(match.getLevelId().getValue());
+		dos.writeInt(match.getPlayers().length);
+		for (int i = 0; i < match.getPlayers().length; i++) {
 			final Player player = match.getPlayers()[i];
 			dos.writeUTF(player.getId().getValue());
 			dos.writeUTF(player.getName());
@@ -51,13 +49,14 @@ public final class MatchPacket extends Packet {
 
 	@Override
 	public void deserialize(DataInputStream dis) throws IOException {
-		Level level = new Level(new LevelId(dis.readUTF()), dis.readUTF(), dis.readInt());
-		Player[] players = new Player[level.getNumberOfPlayers()];
-		for (int i = 0; i < level.getNumberOfPlayers(); i++) {
+		LevelId levelId = new LevelId(dis.readUTF());
+		int playersLength = dis.readInt();
+		Player[] players = new Player[playersLength];
+		for (int i = 0; i < playersLength; i++) {
 			players[i] = new Player(new PlayerId(dis.readUTF()), dis.readUTF(), Civilisation.values()[dis.readInt()], PlayerType.values()[dis.readInt()], dis.readInt(), dis.readInt(),
 					dis.readBoolean());
 		}
-		match = new Match(new MatchId(dis.readUTF()), level, players, ResourceAmount.values()[dis.readInt()], Duration.ofMinutes(dis.readLong()));
+		match = new Match(new MatchId(dis.readUTF()), levelId, players, ResourceAmount.values()[dis.readInt()], Duration.ofMinutes(dis.readLong()));
 	}
 
 	public Match getMatch() {

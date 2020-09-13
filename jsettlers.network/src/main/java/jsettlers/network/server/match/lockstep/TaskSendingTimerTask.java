@@ -17,8 +17,11 @@ package jsettlers.network.server.match.lockstep;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimerTask;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
 
 import jsettlers.network.NetworkConstants;
+import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.infrastructure.channel.ping.IPingUpdateListener;
 import jsettlers.network.infrastructure.log.Logger;
 import jsettlers.network.infrastructure.utils.MaximumSlotBuffer;
@@ -34,7 +37,7 @@ import jsettlers.network.server.packets.ServersideTaskPacket;
 public class TaskSendingTimerTask extends TimerTask {
 	private final Logger logger;
 	private final TaskCollectingListener taskCollectingListener;
-	private final Match match;
+	private final Consumer<ServersideSyncTasksPacket> broadcastConsumer;
 
 	private int lockstepCounter = 0;
 	private int currentLockstepMax = NetworkConstants.Client.LOCKSTEP_DEFAULT_LEAD_STEPS;
@@ -42,10 +45,10 @@ public class TaskSendingTimerTask extends TimerTask {
 	private int minimumLeadTimeMs = NetworkConstants.Client.LOCKSTEP_DEFAULT_LEAD_STEPS * NetworkConstants.Client.LOCKSTEP_PERIOD;
 	private int leadSteps = minimumLeadTimeMs / NetworkConstants.Client.LOCKSTEP_PERIOD;
 
-	public TaskSendingTimerTask(Logger logger, TaskCollectingListener taskCollectingListener, Match match) {
+	public TaskSendingTimerTask(Logger logger, TaskCollectingListener taskCollectingListener, Consumer<ServersideSyncTasksPacket> broadcastConsumer) {
 		this.logger = logger;
 		this.taskCollectingListener = taskCollectingListener;
-		this.match = match;
+		this.broadcastConsumer = broadcastConsumer;
 	}
 
 	@Override
@@ -55,8 +58,7 @@ public class TaskSendingTimerTask extends TimerTask {
 		}
 
 		List<ServersideTaskPacket> tasksList = taskCollectingListener.getAndResetTasks();
-		ServersideSyncTasksPacket syncTasksPacket = new ServersideSyncTasksPacket(lockstepCounter++, tasksList);
-		match.broadcastMessage(NetworkConstants.ENetworkKey.SYNCHRONOUS_TASK, syncTasksPacket);
+		broadcastConsumer.accept(new ServersideSyncTasksPacket(lockstepCounter++, tasksList));
 	}
 
 	public void receivedLockstepAcknowledge(int acknowledgedLockstep) {

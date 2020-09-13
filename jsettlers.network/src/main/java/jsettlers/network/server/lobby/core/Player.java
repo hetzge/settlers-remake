@@ -42,6 +42,10 @@ public final class Player {
 		return new Player(id, name, civilisation, type, position, team, ready);
 	}
 
+	public boolean isHost() {
+		return position == 0;
+	}
+
 	public PlayerId getId() {
 		return id;
 	}

@@ -15,10 +15,11 @@
 package jsettlers.network.server;
 
 import java.io.IOException;
-import java.util.List;
+import java.util.Collection;
 import java.util.Scanner;
 
-import jsettlers.network.server.match.Match;
+import jsettlers.network.server.lobby.core.Lobby;
+import jsettlers.network.server.lobby.core.Match;
 
 /**
  * This class starts a dedicated server.
@@ -29,7 +30,8 @@ import jsettlers.network.server.match.Match;
 public class DedicatedServerApp {
 
 	public static void main(String args[]) throws IOException {
-		GameServerThread gameServer = new GameServerThread(false);
+		Lobby lobby = new Lobby();
+		GameServerThread gameServer = new GameServerThread(false, lobby);
 		gameServer.start();
 
 		Scanner s = new Scanner(System.in);
@@ -39,7 +41,7 @@ public class DedicatedServerApp {
 				System.out.println("shutting down...");
 				break;
 			} else if ("listMatches".equalsIgnoreCase(line)) {
-				List<Match> matches = gameServer.getDatabase().getMatches();
+				Collection<Match> matches = lobby.getMatches();
 				System.out.println("listing matches (" + matches.size() + "):");
 				for (Match match : matches) {
 					System.out.println("\t" + match);

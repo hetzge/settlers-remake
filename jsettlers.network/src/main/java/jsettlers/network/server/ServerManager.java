@@ -36,6 +36,11 @@ import jsettlers.network.server.listeners.matches.JoinMatchListener;
 import jsettlers.network.server.listeners.matches.LeaveMatchListener;
 import jsettlers.network.server.listeners.matches.OpenNewMatchListener;
 import jsettlers.network.server.listeners.matches.StartMatchListener;
+import jsettlers.network.server.lobby.core.LevelId;
+import jsettlers.network.server.lobby.core.Lobby;
+import jsettlers.network.server.lobby.core.MatchId;
+import jsettlers.network.server.lobby.core.User;
+import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.match.Match;
 import jsettlers.network.server.match.MatchesListSendingTimerTask;
 import jsettlers.network.server.match.Player;
@@ -48,14 +53,14 @@ import jsettlers.network.server.match.Player;
  */
 public class ServerManager implements IServerManager {
 
-	private final IDBFacade database;
+	private final Lobby lobby;
 	private final Timer sendMatchesListTimer = new Timer("SendMatchesListTimer", true);
 	private final Timer matchesTaskDistributionTimer = new Timer("MatchesTaskDistributionTimer", true);
 	private final MatchesListSendingTimerTask matchSendingTask;
 
-	public ServerManager(IDBFacade db) {
-		this.database = db;
-		matchSendingTask = new MatchesListSendingTimerTask(db);
+	public ServerManager(Lobby lobby) {
+		this.lobby = lobby;
+		matchSendingTask = new MatchesListSendingTimerTask(lobby);
 	}
 
 	public synchronized void start() {
@@ -73,60 +78,67 @@ public class ServerManager implements IServerManager {
 
 	@Override
 	public boolean acceptNewPlayer(Player player) {
-		if (database.isAcceptedPlayer(player.getId())) {
-			database.storePlayer(player);
+		lobby.join(new User(new UserId(player.getId()), player.getPlayerInfo().getName(), player.getChannel()));
+		return true;
 
-			Channel channel = player.getChannel();
-			channel.removeListener(NetworkConstants.ENetworkKey.IDENTIFY_USER);
-
-			channel.setChannelClosedListener(new ServerChannelClosedListener(this, player));
-			channel.registerListener(new OpenNewMatchListener(this, player));
-			channel.registerListener(new LeaveMatchListener(this, player));
-			channel.registerListener(new StartMatchListener(this, player));
-			channel.registerListener(new JoinMatchListener(this, player));
-			channel.registerListener(new ChatMessageForwardingListener(this, player));
-			channel.registerListener(new TimeSyncForwardingListener(this, player));
-			channel.registerListener(new ReadyStatePacketListener(this, player));
-			channel.registerListener(new CivilisationChangePacketListener(this, player));
-			channel.registerListener(new TeamChangePacketListener(this, player));
-			channel.registerListener(new StartFinishedSignalListener(this, player));
-
-			return true;
-		} else {
-			return false;
-		}
+		// if (database.isAcceptedPlayer(player.getId())) {
+		// database.storePlayer(player);
+		//
+		// Channel channel = player.getChannel();
+		// channel.removeListener(NetworkConstants.ENetworkKey.IDENTIFY_USER);
+		//
+		// channel.setChannelClosedListener(new ServerChannelClosedListener(this, player));
+		// channel.registerListener(new OpenNewMatchListener(this, player));
+		// channel.registerListener(new LeaveMatchListener(this, player));
+		// channel.registerListener(new StartMatchListener(this, player));
+		// channel.registerListener(new JoinMatchListener(this, player));
+		// channel.registerListener(new ChatMessageForwardingListener(this, player));
+		// channel.registerListener(new TimeSyncForwardingListener(this, player));
+		// channel.registerListener(new ReadyStatePacketListener(this, player));
+		// channel.registerListener(new CivilisationChangePacketListener(this, player));
+		// channel.registerListener(new TeamChangePacketListener(this, player));
+		// channel.registerListener(new StartFinishedSignalListener(this, player));
+		//
+		// return true;
+		// } else {
+		// return false;
+		// }
 	}
 
 	@Override
 	public void channelClosed(Player player) {
-		if (player.isInMatch()) {
-			try {
-				player.leaveMatch();
-			} catch (IllegalStateException e) {
-				assert false : "This may never happen here!";
-			}
-		}
+		lobby.leave(new UserId(player.getId()));
 
-		database.removePlayer(player);
+		// if (player.isInMatch()) {
+		// try {
+		// player.leaveMatch();
+		// } catch (IllegalStateException e) {
+		// assert false : "This may never happen here!";
+		// }
+		// }
+		//
+		// database.removePlayer(player);
 	}
 
 	@Override
 	public void createNewMatch(OpenNewMatchPacket matchInfo, Player player) {
-		Match match = new Match(matchInfo.getMatchName(), matchInfo.getMaxPlayers(), matchInfo.getMapInfo(), matchInfo.getRandomSeed());
-		database.storeMatch(match);
+		lobby.createMatch(new UserId(player.getId()), new LevelId(matchInfo.getMapInfo().getId()), matchInfo.getMaxPlayers());
 
-		joinMatch(match, player);
+		// Match match = new Match(matchInfo.getMatchName(), matchInfo.getMaxPlayers(), matchInfo.getMapInfo(), matchInfo.getRandomSeed());
+		// database.storeMatch(match);
+		//
+		// joinMatch(match, player);
 	}
 
-	private void joinMatch(Match match, Player player) {
-		try {
-			player.joinMatch(match);
-		} catch (IllegalStateException e) {
-			e.printStackTrace();
-			player.sendPacket(NetworkConstants.ENetworkKey.REJECT_PACKET,
-					new RejectPacket(NetworkConstants.ENetworkMessage.INVALID_STATE_ERROR, NetworkConstants.ENetworkKey.REQUEST_OPEN_NEW_MATCH));
-		}
-	}
+	// private void joinMatch(Match match, Player player) {
+	// try {
+	// player.joinMatch(match);
+	// } catch (IllegalStateException e) {
+	// e.printStackTrace();
+	// player.sendPacket(NetworkConstants.ENetworkKey.REJECT_PACKET,
+	// new RejectPacket(NetworkConstants.ENetworkMessage.INVALID_STATE_ERROR, NetworkConstants.ENetworkKey.REQUEST_OPEN_NEW_MATCH));
+	// }
+	// }
 
 	@Override
 	public void leaveMatch(Player player) {
@@ -167,13 +179,15 @@ public class ServerManager implements IServerManager {
 
 	@Override
 	public void joinMatch(String matchId, Player player) {
-		Match match = database.getMatchById(matchId);
-		try {
-			player.joinMatch(match);
-		} catch (IllegalStateException e) {
-			player.sendPacket(NetworkConstants.ENetworkKey.REJECT_PACKET,
-					new RejectPacket(NetworkConstants.ENetworkMessage.INVALID_STATE_ERROR, NetworkConstants.ENetworkKey.REQUEST_JOIN_MATCH));
-		}
+		lobby.joinMatch(new UserId(player.getId()), new MatchId(matchId));
+
+		// Match match = database.getMatchById(matchId);
+		// try {
+		// player.joinMatch(match);
+		// } catch (IllegalStateException e) {
+		// player.sendPacket(NetworkConstants.ENetworkKey.REJECT_PACKET,
+		// new RejectPacket(NetworkConstants.ENetworkMessage.INVALID_STATE_ERROR, NetworkConstants.ENetworkKey.REQUEST_JOIN_MATCH));
+		// }
 	}
 
 	@Override
@@ -208,15 +222,11 @@ public class ServerManager implements IServerManager {
 
 	@Override
 	public void sendMatchesToPlayer(Player player) {
-		matchSendingTask.sendMatchesTo(player);
+		lobby.sendMatches(new UserId(player.getId()));
 	}
 
 	@Override
 	public void setStartFinished(Player player, boolean startFinished) {
 		player.setStartFinished(startFinished);
-	}
-
-	public IDBFacade getDatabase() {
-		return database;
 	}
 }

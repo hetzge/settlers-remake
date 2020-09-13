@@ -20,6 +20,7 @@ package jsettlers.network.infrastructure.channel;
  * @author Andreas Eberle
  * 
  */
+@FunctionalInterface
 public interface IChannelClosedListener {
 
 	/**

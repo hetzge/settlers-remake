@@ -38,10 +38,6 @@ public class TaskCollectingListener extends PacketChannelListener<ServersideTask
 		super(ENetworkKey.SYNCHRONOUS_TASK, new GenericDeserializer<>(ServersideTaskPacket.class));
 	}
 
-	/**
-	 * 
-	 * @return
-	 */
 	public List<ServersideTaskPacket> getAndResetTasks() {
 		List<ServersideTaskPacket> temp = currTasksList;
 		currTasksList = new LinkedList<>();

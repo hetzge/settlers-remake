@@ -28,6 +28,7 @@ import jsettlers.network.server.db.IDBFacade;
 import jsettlers.network.server.db.inMemory.InMemoryDB;
 import jsettlers.network.server.lan.LanServerAddressBroadcastListener;
 import jsettlers.network.server.lan.LanServerBroadcastThread;
+import jsettlers.network.server.lobby.core.Lobby;
 
 /**
  * 
@@ -45,10 +46,10 @@ public final class GameServerThread extends Thread {
 	private long counter = 0;
 	private boolean canceled = false;
 
-	public GameServerThread(boolean lan) throws IOException {
+	public GameServerThread(boolean lan, Lobby lobby) throws IOException {
 		super("GameServer");
 		this.serverSocket = new ServerSocket(NetworkConstants.Server.SERVER_PORT);
-		this.manager = new ServerManager(new InMemoryDB());
+		this.manager = new ServerManager(lobby);
 
 		this.setDaemon(true);
 
@@ -133,9 +134,5 @@ public final class GameServerThread extends Thread {
 
 	public boolean isLanBroadcasterAlive() {
 		return lanBroadcastThread != null && lanBroadcastThread.isAlive();
-	}
-
-	public IDBFacade getDatabase() {
-		return manager.getDatabase();
 	}
 }

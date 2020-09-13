@@ -157,8 +157,7 @@ public class Match {
 	/**
 	 * 
 	 * @param sendingPlayer
-	 *            The sending player will not receive the message. If the message shall be send to all players in the match, <code>null</code> can be
-	 *            used as value for this.
+	 *            The sending player will not receive the message. If the message shall be send to all players in the match, <code>null</code> can be used as value for this.
 	 * @param key
 	 * @param packet
 	 */
@@ -220,7 +219,9 @@ public class Match {
 		state = EMatchState.RUNNING;
 
 		this.taskCollectingListener = new TaskCollectingListener();
-		this.taskSendingTimerTask = new TaskSendingTimerTask(logger, taskCollectingListener, this);
+		this.taskSendingTimerTask = new TaskSendingTimerTask(logger, taskCollectingListener, packet -> {
+			broadcastMessage(NetworkConstants.ENetworkKey.SYNCHRONOUS_TASK, packet);
+		});
 		timer.schedule(taskSendingTimerTask, NetworkConstants.Client.LOCKSTEP_PERIOD, NetworkConstants.Client.LOCKSTEP_PERIOD / 2 - 2);
 
 		synchronized (players) {

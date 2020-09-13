@@ -1,6 +1,7 @@
 package jsettlers.network.server.lobby.core;
 
 import java.util.Objects;
+import java.util.UUID;
 
 public final class MatchId {
 
@@ -34,5 +35,9 @@ public final class MatchId {
 	@Override
 	public String toString() {
 		return String.format("MatchId [value=%s]", value);
+	}
+
+	public static MatchId generate() {
+		return new MatchId(UUID.randomUUID().toString());
 	}
 }

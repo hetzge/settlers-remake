@@ -148,7 +148,12 @@ public final class NetworkConstants {
 
 		CHANGE_START_FINISHED,
 		CHANGE_CIVILISATION,
-		CHANGE_TEAM;
+		CHANGE_TEAM,
+		
+		// TODO replace MATCH_INFO_UPDATE
+		UPDATE_MATCH,
+		// TODO replace ARRAY_OF_MATCHES
+		UPDATE_MATCHES;
 
 		private static final ENetworkKey[] values = ENetworkKey.values();
 		private final byte ordinal;
