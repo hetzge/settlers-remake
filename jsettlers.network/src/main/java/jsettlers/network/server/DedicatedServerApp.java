@@ -18,7 +18,7 @@ import java.io.IOException;
 import java.util.Collection;
 import java.util.Scanner;
 
-import jsettlers.network.server.lobby.core.Lobby;
+import jsettlers.network.server.lobby.Lobby;
 import jsettlers.network.server.lobby.core.Match;
 
 /**

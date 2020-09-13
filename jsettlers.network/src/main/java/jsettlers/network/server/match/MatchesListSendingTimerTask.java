@@ -16,7 +16,7 @@ package jsettlers.network.server.match;
 
 import java.util.TimerTask;
 
-import jsettlers.network.server.lobby.core.Lobby;
+import jsettlers.network.server.lobby.Lobby;
 
 /**
  * This {@link TimerTask} implementation gets the logged in players and sends them the open matches on every call to {@link #run()}.

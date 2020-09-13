@@ -1,4 +1,4 @@
-package jsettlers.network.server.lobby.core;
+package jsettlers.network.server.lobby;
 
 import java.time.Duration;
 import java.util.Collection;
@@ -17,12 +17,23 @@ import jsettlers.network.common.packets.MatchInfoPacket;
 import jsettlers.network.common.packets.MatchStartPacket;
 import jsettlers.network.infrastructure.channel.Channel;
 import jsettlers.network.infrastructure.channel.packet.Packet;
+import jsettlers.network.infrastructure.log.ConsoleLogger;
 import jsettlers.network.infrastructure.log.Logger;
 import jsettlers.network.infrastructure.log.LoggerManager;
 import jsettlers.network.server.exceptions.NotAllPlayersReadyException;
+import jsettlers.network.server.lobby.core.LevelId;
+import jsettlers.network.server.lobby.core.Match;
+import jsettlers.network.server.lobby.core.MatchId;
+import jsettlers.network.server.lobby.core.Player;
+import jsettlers.network.server.lobby.core.PlayerId;
+import jsettlers.network.server.lobby.core.PlayerType;
+import jsettlers.network.server.lobby.core.ResourceAmount;
+import jsettlers.network.server.lobby.core.User;
+import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchArrayPacket;
 import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.match.EMatchState;
+import jsettlers.network.server.match.EPlayerState;
 import jsettlers.network.server.match.lockstep.TaskCollectingListener;
 import jsettlers.network.server.match.lockstep.TaskSendingTimerTask;
 import jsettlers.network.server.packets.ServersideSyncTasksPacket;
@@ -84,6 +95,8 @@ public final class Lobby {
 						final Player existingPlayer = match.getPlayers()[position];
 						update(match.withPlayer(new Player(userId.getPlayerId(), user.getUsername(), existingPlayer.getCivilisation(), PlayerType.HUMAN, position, existingPlayer.getTeam(), false)));
 					});
+					// Set logger
+					user.getChannel().setLogger(match.createLogger());
 				}
 			});
 		});
@@ -103,14 +116,22 @@ public final class Lobby {
 						Optional.ofNullable(timerTaskByMatchId.get(match.getId())).ifPresent(TimerTask::cancel);
 						timerTaskByMatchId.remove(match.getId());
 
-						// Leave all users from the match
+						// Leave all other users from the match
 						for (UserId id : match.getUserIds()) {
-							leaveMatch(id);
+							if (!id.equals(userId)) {
+								leaveMatch(id);
+							}
 						}
 
 						// Remove match from lobby
 						matchById.remove(match.getId());
 					}
+				});
+				Optional.ofNullable(userById.get(userId)).ifPresent(user -> {
+					// Reset logger
+					user.getChannel().setLogger(LoggerManager.ROOT_LOGGER);
+					// Remove listener
+					user.getChannel().removeListener(ENetworkKey.SYNCHRONOUS_TASK);
 				});
 			}
 		});
@@ -133,10 +154,11 @@ public final class Lobby {
 				timer.schedule(taskSendingTimerTask, NetworkConstants.Client.LOCKSTEP_PERIOD, NetworkConstants.Client.LOCKSTEP_PERIOD / 2 - 2);
 				timerTaskByMatchId.put(match.getId(), taskSendingTimerTask);
 
-				for (UserId id : match.getUserIds()) {
+				final List<UserId> userIds = match.getUserIds();
+				for (int i = 0; i < userIds.size(); i++) {
+					final UserId id = userIds.get(i);
 					Optional.ofNullable(userById.get(id)).ifPresent(user -> {
 						final Channel channel = user.getChannel();
-						// TODO unregister listener
 						channel.registerListener(taskCollectingListener);
 						channel.sendPacket(NetworkConstants.ENetworkKey.MATCH_STARTED, new MatchStartPacket(new MatchInfoPacket(this), 0L));
 

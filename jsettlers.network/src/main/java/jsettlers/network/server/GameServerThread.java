@@ -28,7 +28,7 @@ import jsettlers.network.server.db.IDBFacade;
 import jsettlers.network.server.db.inMemory.InMemoryDB;
 import jsettlers.network.server.lan.LanServerAddressBroadcastListener;
 import jsettlers.network.server.lan.LanServerBroadcastThread;
-import jsettlers.network.server.lobby.core.Lobby;
+import jsettlers.network.server.lobby.Lobby;
 
 /**
  * 

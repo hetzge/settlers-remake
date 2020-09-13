@@ -1,4 +1,4 @@
-package jsettlers.network.server.lobby.network;
+package jsettlers.network.server.lobby;
 
 import java.io.IOException;
 import java.util.Timer;
@@ -17,10 +17,10 @@ import jsettlers.network.infrastructure.channel.listeners.PacketChannelListener;
 import jsettlers.network.infrastructure.channel.packet.EmptyPacket;
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.server.lobby.core.LevelId;
-import jsettlers.network.server.lobby.core.Lobby;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
+import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.match.MatchesListSendingTimerTask;
 
 public final class LobbyNetworkController {
