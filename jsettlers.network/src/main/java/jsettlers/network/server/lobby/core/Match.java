@@ -13,17 +13,52 @@ import jsettlers.network.infrastructure.log.LoggerManager;
 public final class Match {
 
 	private final MatchId id;
+	private final String name;
 	private final LevelId levelId;
 	private final Player[] players;
 	private final ResourceAmount resourceAmount;
 	private final Duration peaceTime;
+	private final MatchState state;
 
-	public Match(MatchId id, LevelId levelId, Player[] players, ResourceAmount resourceAmount, Duration peaceTime) {
+	public Match(MatchId id, String name, LevelId levelId, Player[] players, ResourceAmount resourceAmount, Duration peaceTime, MatchState state) {
 		this.id = id;
+		this.name = name;
 		this.levelId = levelId;
 		this.players = players;
 		this.resourceAmount = resourceAmount;
 		this.peaceTime = peaceTime;
+		this.state = state;
+	}
+
+	public Match update(Match match) {
+		Match copy = this;
+		if (!match.getResourceAmount().equals(copy.getResourceAmount())) {
+			copy = copy.withResourceAmount(match.getResourceAmount());
+		}
+		if (!match.getPeaceTime().equals(copy.getPeaceTime())) {
+			copy = copy.withPeaceTime(match.getPeaceTime());
+		}
+		final Player[] players = match.getPlayers();
+		for (int i = 0; i < players.length; i++) {
+
+			final Player player = players[i];
+			final Player existingPlayer = getPlayers()[i];
+
+			if (player.getTeam() != existingPlayer.getTeam()) {
+				copy = copy.withPlayer(existingPlayer.withTeam(player.getTeam()));
+			}
+			if (player.getType().equals(existingPlayer.getType())) {
+				copy = copy.withPlayer(existingPlayer.withType(player.getType()));
+			}
+			if (player.getPosition() != existingPlayer.getPosition()) {
+				copy = copy.withPlayer(existingPlayer.withPosition(player.getPosition()));
+				copy = copy.withPlayer(getPlayers()[player.getPosition()].withPosition(existingPlayer.getPosition()));
+			}
+			if (player.isReady() != existingPlayer.isReady()) {
+				copy = copy.withPlayer(existingPlayer.withReady(player.isReady()));
+			}
+		}
+		return copy;
 	}
 
 	public Optional<Player> getPlayer(PlayerId playerId) {
@@ -56,19 +91,27 @@ public final class Match {
 	public Match withPlayer(Player player) {
 		Player[] clonedPlayers = players.clone();
 		clonedPlayers[player.getPosition()] = player;
-		return new Match(id, levelId, clonedPlayers, resourceAmount, peaceTime);
+		return new Match(id, name, levelId, clonedPlayers, resourceAmount, peaceTime, state);
 	}
 
 	public Match withResourceAmount(ResourceAmount resourceAmount) {
-		return new Match(id, levelId, players, resourceAmount, peaceTime);
+		return new Match(id, name, levelId, players, resourceAmount, peaceTime, state);
 	}
 
 	public Match withPeaceTime(Duration peaceTime) {
-		return new Match(id, levelId, players, resourceAmount, peaceTime);
+		return new Match(id, name, levelId, players, resourceAmount, peaceTime, state);
+	}
+
+	public Match withState(MatchState state) {
+		return new Match(id, name, levelId, players, resourceAmount, peaceTime, state);
 	}
 
 	public MatchId getId() {
 		return id;
+	}
+
+	public String getName() {
+		return name;
 	}
 
 	public LevelId getLevelId() {
@@ -91,9 +134,12 @@ public final class Match {
 		return peaceTime;
 	}
 
+	public MatchState getState() {
+		return state;
+	}
+
 	public Logger createLogger() {
-		// TODO name
-		return LoggerManager.getMatchLogger(getId().getValue(), getId().getValue());
+		return LoggerManager.getMatchLogger(getId().getValue(), name);
 	}
 
 	@Override
@@ -115,6 +161,6 @@ public final class Match {
 
 	@Override
 	public String toString() {
-		return String.format("Match [id=%s, levelId=%s, players=%s, resourceAmount=%s, peaceTime=%s]", id, levelId, Arrays.toString(players), resourceAmount, peaceTime);
+		return String.format("Match [id=%s, levelId=%s, players=%s, resourceAmount=%s, peaceTime=%s, state=%s]", id, levelId, Arrays.toString(players), resourceAmount, peaceTime, state);
 	}
 }

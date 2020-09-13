@@ -11,6 +11,7 @@ import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.IdPacket;
 import jsettlers.network.common.packets.OpenNewMatchPacket;
 import jsettlers.network.common.packets.PlayerInfoPacket;
+import jsettlers.network.common.packets.TimeSyncPacket;
 import jsettlers.network.infrastructure.channel.Channel;
 import jsettlers.network.infrastructure.channel.GenericDeserializer;
 import jsettlers.network.infrastructure.channel.listeners.PacketChannelListener;
@@ -58,7 +59,7 @@ public final class LobbyNetworkController {
 			lobby.leave(user.getId());
 		});
 		channel.registerListener(new Listener<>(ENetworkKey.REQUEST_OPEN_NEW_MATCH, OpenNewMatchPacket.class, packet -> {
-			lobby.createMatch(user.getId(), new LevelId(packet.getMapInfo().getId()), packet.getMaxPlayers());
+			lobby.createMatch(user.getId(), packet.getMatchName(), new LevelId(packet.getMapInfo().getId()), packet.getMaxPlayers());
 		}));
 		channel.registerListener(new Listener<>(ENetworkKey.REQUEST_JOIN_MATCH, IdPacket.class, packet -> {
 			lobby.joinMatch(user.getId(), new MatchId(packet.getId()));
@@ -77,6 +78,9 @@ public final class LobbyNetworkController {
 		}));
 		channel.registerListener(new Listener<>(ENetworkKey.UPDATE_MATCH, MatchPacket.class, packet -> {
 			lobby.update(packet.getMatch());
+		}));
+		channel.registerListener(new Listener<>(ENetworkKey.TIME_SYNC, TimeSyncPacket.class, packet -> {
+			lobby.sendMatchTimeSync(user.getId(), packet);
 		}));
 	}
 

@@ -5,4 +5,6 @@ public enum Civilisation {
 	EGYPTIAN,
 	ASIAN,
 	AMAZON;
+
+	public static final Civilisation[] VALUES = values();
 }

@@ -38,6 +38,10 @@ public class MatchArrayPacket extends Packet {
 			matches[i] = matchPacket.getMatch();
 		}
 	}
+	
+	public Match[] getMatches() {
+		return matches;
+	}
 
 	@Override
 	public int hashCode() {

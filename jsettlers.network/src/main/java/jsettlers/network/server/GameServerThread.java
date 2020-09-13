@@ -24,11 +24,10 @@ import jsettlers.network.infrastructure.channel.Channel;
 import jsettlers.network.infrastructure.channel.socket.ISocketFactory;
 import jsettlers.network.infrastructure.log.Logger;
 import jsettlers.network.infrastructure.log.LoggerManager;
-import jsettlers.network.server.db.IDBFacade;
-import jsettlers.network.server.db.inMemory.InMemoryDB;
 import jsettlers.network.server.lan.LanServerAddressBroadcastListener;
 import jsettlers.network.server.lan.LanServerBroadcastThread;
 import jsettlers.network.server.lobby.Lobby;
+import jsettlers.network.server.lobby.LobbyNetworkController;
 
 /**
  * 
@@ -40,7 +39,7 @@ public final class GameServerThread extends Thread {
 	private static final Logger LOGGER = LoggerManager.ROOT_LOGGER;
 
 	private final ServerSocket serverSocket;
-	private final ServerManager manager;
+	private final LobbyNetworkController controller;
 	private final LanServerBroadcastThread lanBroadcastThread;
 
 	private long counter = 0;
@@ -49,7 +48,7 @@ public final class GameServerThread extends Thread {
 	public GameServerThread(boolean lan, Lobby lobby) throws IOException {
 		super("GameServer");
 		this.serverSocket = new ServerSocket(NetworkConstants.Server.SERVER_PORT);
-		this.manager = new ServerManager(lobby);
+		this.controller = new LobbyNetworkController(lobby);
 
 		this.setDaemon(true);
 
@@ -70,7 +69,7 @@ public final class GameServerThread extends Thread {
 				Socket clientSocket = serverSocket.accept();
 
 				Channel clientChannel = new Channel(LOGGER, ISocketFactory.DEFAULT_FACTORY.generateSocket(clientSocket));
-				manager.identifyNewChannel(clientChannel);
+				controller.setup(clientChannel);
 				clientChannel.start();
 
 				LOGGER.log("accepted new client (" + ++counter + "): " + clientSocket);
@@ -116,7 +115,7 @@ public final class GameServerThread extends Thread {
 	@Override
 	public synchronized void start() {
 		super.start();
-		manager.start();
+		controller.start();
 	}
 
 	public synchronized void shutdown() {
@@ -129,7 +128,7 @@ public final class GameServerThread extends Thread {
 		if (lanBroadcastThread != null)
 			lanBroadcastThread.shutdown();
 
-		manager.shutdown();
+		controller.stop();
 	}
 
 	public boolean isLanBroadcasterAlive() {

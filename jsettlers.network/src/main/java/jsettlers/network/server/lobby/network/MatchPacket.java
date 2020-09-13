@@ -11,6 +11,7 @@ import jsettlers.network.server.lobby.core.Civilisation;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
+import jsettlers.network.server.lobby.core.MatchState;
 import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.PlayerId;
 import jsettlers.network.server.lobby.core.PlayerType;
@@ -43,20 +44,22 @@ public final class MatchPacket extends Packet {
 			dos.writeBoolean(player.isReady());
 		}
 		dos.writeUTF(match.getId().getValue());
+		dos.writeUTF(match.getName());
 		dos.writeInt(match.getResourceAmount().ordinal());
 		dos.writeLong(match.getPeaceTime().toMinutes());
+		dos.writeInt(match.getState().ordinal());
 	}
 
 	@Override
 	public void deserialize(DataInputStream dis) throws IOException {
-		LevelId levelId = new LevelId(dis.readUTF());
-		int playersLength = dis.readInt();
-		Player[] players = new Player[playersLength];
+		final LevelId levelId = new LevelId(dis.readUTF());
+		final int playersLength = dis.readInt();
+		final Player[] players = new Player[playersLength];
 		for (int i = 0; i < playersLength; i++) {
-			players[i] = new Player(new PlayerId(dis.readUTF()), dis.readUTF(), Civilisation.values()[dis.readInt()], PlayerType.values()[dis.readInt()], dis.readInt(), dis.readInt(),
+			players[i] = new Player(new PlayerId(dis.readUTF()), dis.readUTF(), Civilisation.VALUES[dis.readInt()], PlayerType.VALUES[dis.readInt()], dis.readInt(), dis.readInt(),
 					dis.readBoolean());
 		}
-		match = new Match(new MatchId(dis.readUTF()), levelId, players, ResourceAmount.values()[dis.readInt()], Duration.ofMinutes(dis.readLong()));
+		match = new Match(new MatchId(dis.readUTF()), dis.readUTF(), levelId, players, ResourceAmount.VALUES[dis.readInt()], Duration.ofMinutes(dis.readLong()), MatchState.VALUES[dis.readInt()]);
 	}
 
 	public Match getMatch() {

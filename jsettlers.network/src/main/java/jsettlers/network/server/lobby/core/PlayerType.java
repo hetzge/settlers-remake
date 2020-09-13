@@ -8,6 +8,8 @@ public enum PlayerType {
 	KI_MEDIUM,
 	KI_HARD,
 	KI_VERY_HARD;
+	
+	public static final PlayerType[] VALUES = values();
 
 	public boolean canBeReplacedWithHuman() {
 		return this != HUMAN && this != NONE;
