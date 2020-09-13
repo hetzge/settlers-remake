@@ -22,6 +22,26 @@ public final class Player {
 		this.ready = ready;
 	}
 
+	public Player update(Player player) {
+		Player newPlayer = this;
+		if (player.civilisation != civilisation) {
+			newPlayer = newPlayer.withCivilisation(player.civilisation);
+		}
+		if (player.type != type) {
+			newPlayer = newPlayer.withType(player.type);
+		}
+		if (player.team != team) {
+			newPlayer = newPlayer.withTeam(player.team);
+		}
+		if (player.position != position) {
+			newPlayer = newPlayer.withPosition(player.position);
+		}
+		if (player.ready != ready) {
+			newPlayer = newPlayer.withReady(player.ready);
+		}
+		return newPlayer;
+	}
+
 	public Player withCivilisation(Civilisation civilisation) {
 		return new Player(id, name, civilisation, type, position, team, ready);
 	}

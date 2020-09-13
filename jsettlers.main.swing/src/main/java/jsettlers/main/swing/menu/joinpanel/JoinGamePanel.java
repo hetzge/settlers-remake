@@ -71,15 +71,8 @@ import java8.util.J8Arrays;
 /**
  * Layout:
  * 
- * +---------------------------------------------------------------+
- * |              titleLabel                                       |
- * +------------------------+--------------------------------------+
- * |                        |       playerSlotsPanel               |
- * |                        +--------------------------------------+
- * | westPanel              |       chatPanel                      |
- * |                        +--------------------------------------+
- * |                        |       southPanel                     |
- * +------------------------+--------------------------------------+
+ * +---------------------------------------------------------------+ | titleLabel | +------------------------+--------------------------------------+ | | playerSlotsPanel | |
+ * +--------------------------------------+ | westPanel | chatPanel | | +--------------------------------------+ | | southPanel | +------------------------+--------------------------------------+
  * 
  * @author codingberlin
  */
@@ -261,30 +254,32 @@ public class JoinGamePanel extends BackgroundPanel {
 		setStartButtonActionListener(e -> {
 		});
 		String myId = connector.getPlayerUUID();
-		IJoiningGame joiningGame = connector.openNewMultiplayerGame(new OpenMultiPlayerGameInfo(mapLoader));
-		joiningGame.setListener(new IJoiningGameListener() {
-			@Override
-			public void joinProgressChanged(EProgressState state, float progress) {
-
-			}
-
-			@Override
-			public void gameJoined(IJoinPhaseMultiplayerGameConnector connector) {
-				SwingUtilities.invokeLater(() -> {
-					initializeChatFor(connector);
-					setStartButtonActionListener(e -> connector.startGame());
-					connector.getPlayers().setListener(changingPlayers -> onPlayersChanges(changingPlayers, connector, myId));
-					connector.setMultiplayerListener(new MultiplayerListener());
-
-					onPlayersChanges(connector.getPlayers(), connector, myId); // init the UI with the players
-				});
-			}
-		});
-
-		setCancelButtonActionListener(e -> {
-			joiningGame.abort();
-			settlersFrame.showMainMenu();
-		});
+		// IJoiningGame joiningGame =
+		connector.openNewMultiplayerGame(new OpenMultiPlayerGameInfo(mapLoader));
+		System.out.println("JoinGamePanel.setNewMultiPlayerMap() ...");
+		// joiningGame.setListener(new IJoiningGameListener() {
+		// @Override
+		// public void joinProgressChanged(EProgressState state, float progress) {
+		//
+		// }
+		//
+		// @Override
+		// public void gameJoined(IJoinPhaseMultiplayerGameConnector connector) {
+		// SwingUtilities.invokeLater(() -> {
+		// initializeChatFor(connector);
+		// setStartButtonActionListener(e -> connector.startGame());
+		// connector.getPlayers().setListener(changingPlayers -> onPlayersChanges(changingPlayers, connector, myId));
+		// connector.setMultiplayerListener(new MultiplayerListener());
+		//
+		// onPlayersChanges(connector.getPlayers(), connector, myId); // init the UI with the players
+		// });
+		// }
+		// });
+		//
+		// setCancelButtonActionListener(e -> {
+		// joiningGame.abort();
+		// settlersFrame.showMainMenu();
+		// });
 
 		prepareUiFor(mapLoader);
 	}
@@ -345,7 +340,7 @@ public class JoinGamePanel extends BackgroundPanel {
 	private void onPlayersChanges(ChangingList<? extends IMultiplayerPlayer> changingPlayers, IJoinPhaseMultiplayerGameConnector gameConnector, String myId) {
 		SwingUtilities.invokeLater(() -> {
 			List<? extends IMultiplayerPlayer> players = changingPlayers.getItems();
-			
+
 			// update multiplayer players
 			for (int i = 0; i < players.size(); i++) {
 				IMultiplayerPlayer player = players.get(i);
@@ -358,12 +353,12 @@ public class JoinGamePanel extends BackgroundPanel {
 					playerSlot.setReadyButtonEnabled(false);
 				}
 			}
-			
+
 			// update other players
 			for (int i = players.size(); i < playerSlots.size(); i++) {
 				playerSlots.get(i).setPlayerType(EPlayerType.AI_VERY_HARD, false);
 			}
-			
+
 			setCancelButtonActionListener(e -> {
 				gameConnector.abort();
 				settlersFrame.showMainMenu();

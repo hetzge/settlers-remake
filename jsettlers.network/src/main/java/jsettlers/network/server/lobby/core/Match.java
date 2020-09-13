@@ -31,34 +31,20 @@ public final class Match {
 	}
 
 	public Match update(Match match) {
-		Match copy = this;
-		if (!match.getResourceAmount().equals(copy.getResourceAmount())) {
-			copy = copy.withResourceAmount(match.getResourceAmount());
+		Match newMatch = this;
+		if (!match.getResourceAmount().equals(newMatch.getResourceAmount())) {
+			newMatch = newMatch.withResourceAmount(match.getResourceAmount());
 		}
-		if (!match.getPeaceTime().equals(copy.getPeaceTime())) {
-			copy = copy.withPeaceTime(match.getPeaceTime());
+		if (!match.getPeaceTime().equals(newMatch.getPeaceTime())) {
+			newMatch = newMatch.withPeaceTime(match.getPeaceTime());
 		}
-		final Player[] players = match.getPlayers();
-		for (int i = 0; i < players.length; i++) {
-
-			final Player player = players[i];
-			final Player existingPlayer = getPlayers()[i];
-
-			if (player.getTeam() != existingPlayer.getTeam()) {
-				copy = copy.withPlayer(existingPlayer.withTeam(player.getTeam()));
-			}
-			if (player.getType().equals(existingPlayer.getType())) {
-				copy = copy.withPlayer(existingPlayer.withType(player.getType()));
-			}
-			if (player.getPosition() != existingPlayer.getPosition()) {
-				copy = copy.withPlayer(existingPlayer.withPosition(player.getPosition()));
-				copy = copy.withPlayer(getPlayers()[player.getPosition()].withPosition(existingPlayer.getPosition()));
-			}
-			if (player.isReady() != existingPlayer.isReady()) {
-				copy = copy.withPlayer(existingPlayer.withReady(player.isReady()));
-			}
+		final Player[] newPlayers = match.getPlayers();
+		for (int i = 0; i < newPlayers.length; i++) {
+			final Player newPlayer = newPlayers[i];
+			final Player oldPlayer = getPlayer(newPlayer.getId()).orElseGet(() -> players[newPlayer.getPosition()]);
+			newMatch = newMatch.withPlayer(oldPlayer.update(newPlayer));
 		}
-		return copy;
+		return newMatch;
 	}
 
 	public Optional<Player> getPlayer(PlayerId playerId) {
@@ -89,7 +75,9 @@ public final class Match {
 	}
 
 	public Match withPlayer(Player player) {
-		Player[] clonedPlayers = players.clone();
+		final Player oldPlayer = getPlayer(player.getId()).orElseGet(() -> players[player.getPosition()]);
+		final Player[] clonedPlayers = players.clone();
+		clonedPlayers[oldPlayer.getPosition()] = players[player.getPosition()].withPosition(oldPlayer.getPosition());
 		clonedPlayers[player.getPosition()] = player;
 		return new Match(id, name, levelId, clonedPlayers, resourceAmount, peaceTime, state);
 	}

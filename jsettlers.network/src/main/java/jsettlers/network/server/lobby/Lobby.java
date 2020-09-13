@@ -16,6 +16,7 @@ import jsettlers.network.common.packets.TimeSyncPacket;
 import jsettlers.network.infrastructure.channel.Channel;
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.infrastructure.log.LoggerManager;
+import jsettlers.network.server.lobby.core.Civilisation;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
@@ -53,6 +54,8 @@ public final class Lobby {
 	}
 
 	public void join(User user) {
+		System.out.println("Lobby.join(" + user + ")");
+
 		// If user already exists leave first
 		if (userById.containsKey(user.getId())) {
 			leave(user.getId());
@@ -63,6 +66,7 @@ public final class Lobby {
 
 	public void leave(UserId userId) {
 		Optional.ofNullable(userById.get(userId)).ifPresent(user -> {
+			System.out.println("Lobby.leave(" + userId + ")");
 			// Leave active match if exists
 			leaveMatch(userId);
 			// Close and remove channel
@@ -72,14 +76,20 @@ public final class Lobby {
 	}
 
 	public void createMatch(UserId userId, String matchName, LevelId levelId, int maxPlayers) {
+		System.out.println("Lobby.createMatch(" + userId + ", " + matchName + ", " + levelId + ", " + maxPlayers + ")");
 		final MatchId matchId = MatchId.generate();
-		update(new Match(matchId, matchName, levelId, new Player[maxPlayers], ResourceAmount.HIGH, Duration.ZERO, MatchState.OPENED));
+		final Player[] players = new Player[maxPlayers];
+		for (int i = 0; i < players.length; i++) {
+			players[i] = new Player(PlayerId.generate(), "Player-" + i, Civilisation.ROMAN, PlayerType.KI_HARD, i, i + 1, true);
+		}
+		update(new Match(matchId, matchName, levelId, players, ResourceAmount.HIGH, Duration.ZERO, MatchState.OPENED));
 		joinMatch(userId, matchId);
 	}
 
 	public void joinMatch(UserId userId, MatchId matchId) {
 		Optional.ofNullable(userById.get(userId)).ifPresent(user -> {
 			Optional.ofNullable(matchById.get(matchId)).ifPresent(match -> {
+				System.out.println("Lobby.joinMatch(" + userId + ", " + matchId + ")");
 				// Leave match first if user already contained
 				leaveMatch(userId);
 				match.findNextHumanPlayerPosition().ifPresent(position -> {
@@ -95,6 +105,7 @@ public final class Lobby {
 
 	public void leaveMatch(UserId userId) {
 		getActiveMatch(userId).ifPresent(match -> {
+			System.out.println("Lobby.leaveMatch(" + userId + ")");
 			final PlayerId playerId = userId.getPlayerId();
 			match.getPlayer(playerId).ifPresent(existingPlayer -> {
 				if (!existingPlayer.isHost()) {
@@ -127,6 +138,7 @@ public final class Lobby {
 	}
 
 	public void startMatch(UserId userId, Timer timer) {
+		System.out.println("Lobby.startMatch(" + userId + ")");
 		// if (state == EMatchState.RUNNING || state == EMatchState.FINISHED) {
 		// return; // match already started
 		// }
@@ -160,7 +172,7 @@ public final class Lobby {
 	}
 
 	// TODO add userid and access control
-	public void update(Match match) {
+	void update(Match match) {
 		final Match newMatch = matchById.computeIfAbsent(match.getId(), key -> match).update(match);
 		matchById.put(match.getId(), newMatch);
 		sendMatchUpdate(newMatch);
@@ -218,7 +230,7 @@ public final class Lobby {
 		return matchById.values();
 	}
 
-	private Optional<Match> getActiveMatch(UserId userId) {
+	Optional<Match> getActiveMatch(UserId userId) {
 		final PlayerId playerId = userId.getPlayerId();
 		for (Match match : matchById.values()) {
 			if (match.getPlayer(playerId).isPresent()) {

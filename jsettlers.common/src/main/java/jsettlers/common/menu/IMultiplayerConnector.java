@@ -48,7 +48,7 @@ public interface IMultiplayerConnector {
 	 *            {@link IOpenMultiplayerGameInfo} object defining the parameters of the game.
 	 * @return
 	 */
-	IJoiningGame openNewMultiplayerGame(IOpenMultiplayerGameInfo gameInfo);
+	void openNewMultiplayerGame(IOpenMultiplayerGameInfo gameInfo);
 
 	/**
 	 * @return Returns the round trip time in milliseconds<br>

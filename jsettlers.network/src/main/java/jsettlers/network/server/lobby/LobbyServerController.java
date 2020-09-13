@@ -24,13 +24,13 @@ import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.match.MatchesListSendingTimerTask;
 
-public final class LobbyNetworkController {
+public final class LobbyServerController {
 
 	private final Lobby lobby;
 	private final Timer sendMatchesTimer;
 	private final Timer matchesTaskTimer;
 
-	public LobbyNetworkController(Lobby lobby) {
+	public LobbyServerController(Lobby lobby) {
 		this.lobby = lobby;
 		this.sendMatchesTimer = new Timer("SendMatchesListTimer", true);
 		this.matchesTaskTimer = new Timer("MatchesTaskDistributionTimer", true);

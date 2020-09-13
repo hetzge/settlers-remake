@@ -14,8 +14,9 @@
  *******************************************************************************/
 package jsettlers.main.swing.menu.multiplayer;
 
+import static java8.util.stream.StreamSupport.stream;
+
 import java.awt.BorderLayout;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -35,13 +36,10 @@ import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.list.MapList;
 import jsettlers.main.swing.JSettlersFrame;
-import jsettlers.main.swing.menu.joinpanel.JoinGamePanel;
 import jsettlers.main.swing.menu.mainmenu.NetworkGameMapLoader;
 import jsettlers.main.swing.menu.openpanel.OpenPanel;
 import jsettlers.main.swing.settings.ServerEntry;
 import jsettlers.network.client.IClientConnection;
-
-import static java8.util.stream.StreamSupport.stream;
 
 public class ServerConnectionPanel extends JPanel {
 

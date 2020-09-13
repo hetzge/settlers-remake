@@ -29,7 +29,6 @@ import jsettlers.network.client.task.packets.TaskPacket;
 import jsettlers.network.client.time.ISynchronizableClock;
 import jsettlers.network.client.time.TimeSyncSenderTimerTask;
 import jsettlers.network.client.time.TimeSynchronizationListener;
-import jsettlers.network.common.packets.ArrayOfMatchInfosPacket;
 import jsettlers.network.common.packets.BooleanMessagePacket;
 import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.IdPacket;
@@ -46,6 +45,7 @@ import jsettlers.network.infrastructure.channel.IChannelClosedListener;
 import jsettlers.network.infrastructure.channel.packet.EmptyPacket;
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
+import jsettlers.network.server.lobby.network.MatchArrayPacket;
 import jsettlers.network.server.match.EPlayerState;
 import jsettlers.network.synchronic.timer.NetworkTimer;
 
@@ -100,15 +100,14 @@ public class NetworkClient implements ITaskScheduler, INetworkConnector, INetwor
 	}
 
 	@Override
-	public void logIn(String id, String name, IPacketReceiver<ArrayOfMatchInfosPacket> matchesReceiver) throws IllegalStateException {
+	public void logIn(String id, String name, IPacketReceiver<MatchArrayPacket> matchesReceiver) throws IllegalStateException {
 		EPlayerState.assertState(state, EPlayerState.CHANNEL_CONNECTED);
 
 		playerInfo = new PlayerInfoPacket(id, name, false);
 
 		channel.registerListener(new IdentifiedUserListener(this));
-		channel.registerListener(generateDefaultListener(NetworkConstants.ENetworkKey.ARRAY_OF_MATCHES, ArrayOfMatchInfosPacket.class,
-				matchesReceiver));
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.IDENTIFY_USER, playerInfo);
+		channel.registerListener(generateDefaultListener(ENetworkKey.UPDATE_MATCHES, MatchArrayPacket.class, matchesReceiver));
+		channel.sendPacketAsync(ENetworkKey.IDENTIFY_USER, playerInfo);
 	}
 
 	/**
@@ -322,5 +321,10 @@ public class NetworkClient implements ITaskScheduler, INetworkConnector, INetwor
 	@Override
 	public INetworkConnector getNetworkConnector() {
 		return this;
+	}
+
+	@Override
+	public void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo) {
+		channel.sendPacketAsync(NetworkConstants.ENetworkKey.REQUEST_OPEN_NEW_MATCH, new OpenNewMatchPacket(matchName, maxPlayers, mapInfo, 0L));
 	}
 }

@@ -27,7 +27,7 @@ import jsettlers.network.infrastructure.log.LoggerManager;
 import jsettlers.network.server.lan.LanServerAddressBroadcastListener;
 import jsettlers.network.server.lan.LanServerBroadcastThread;
 import jsettlers.network.server.lobby.Lobby;
-import jsettlers.network.server.lobby.LobbyNetworkController;
+import jsettlers.network.server.lobby.LobbyServerController;
 
 /**
  * 
@@ -39,7 +39,7 @@ public final class GameServerThread extends Thread {
 	private static final Logger LOGGER = LoggerManager.ROOT_LOGGER;
 
 	private final ServerSocket serverSocket;
-	private final LobbyNetworkController controller;
+	private final LobbyServerController controller;
 	private final LanServerBroadcastThread lanBroadcastThread;
 
 	private long counter = 0;
@@ -48,7 +48,7 @@ public final class GameServerThread extends Thread {
 	public GameServerThread(boolean lan, Lobby lobby) throws IOException {
 		super("GameServer");
 		this.serverSocket = new ServerSocket(NetworkConstants.Server.SERVER_PORT);
-		this.controller = new LobbyNetworkController(lobby);
+		this.controller = new LobbyServerController(lobby);
 
 		this.setDaemon(true);
 

@@ -66,7 +66,7 @@ public class MultiplayerGame {
 		this.networkClientFactory = networkClientFactory;
 	}
 
-	public IJoiningGame join(final String matchId) {
+	public IJoiningGame join(String matchId) {
 		new Thread("joinGameThread") {
 			@Override
 			public void run() {
@@ -77,7 +77,7 @@ public class MultiplayerGame {
 		return generateJoiningGame();
 	}
 
-	public IJoiningGame openNewGame(final IOpenMultiplayerGameInfo gameInfo) {
+	public IJoiningGame openNewGame(IOpenMultiplayerGameInfo gameInfo) {
 		iAmTheHost = true;
 		new Thread("openNewGameThread") {
 			@Override

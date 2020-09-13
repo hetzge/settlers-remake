@@ -19,6 +19,7 @@ import java.util.List;
 
 import jsettlers.common.menu.IJoinableGame;
 import jsettlers.common.menu.IJoiningGame;
+import jsettlers.common.menu.IMapDefinition;
 import jsettlers.common.menu.IMultiplayerConnector;
 import jsettlers.common.menu.IOpenMultiplayerGameInfo;
 import jsettlers.common.utils.collections.ChangingList;
@@ -27,13 +28,13 @@ import jsettlers.network.client.IClientConnection;
 import jsettlers.network.client.RemoteMapDirectory;
 import jsettlers.network.client.interfaces.INetworkClient;
 import jsettlers.network.client.receiver.IPacketReceiver;
-import jsettlers.network.common.packets.ArrayOfMatchInfosPacket;
-import jsettlers.network.common.packets.MatchInfoPacket;
+import jsettlers.network.common.packets.MapInfoPacket;
 import jsettlers.network.infrastructure.log.Logger;
+import jsettlers.network.server.lobby.core.Match;
+import jsettlers.network.server.lobby.network.MatchArrayPacket;
 
 /**
- * This class implements the {@link IMultiplayerConnector} interface and supports the UI with the list of available multiplayer games and allows to
- * start or create them.
+ * This class implements the {@link IMultiplayerConnector} interface and supports the UI with the list of available multiplayer games and allows to start or create them.
  * 
  * @author Andreas Eberle
  * 
@@ -52,11 +53,11 @@ public class MultiplayerConnector implements IMultiplayerConnector, IClientConne
 		networkClientFactory = new AsyncNetworkClientConnector(serverAddress, userId, userName, generateMatchesReceiver());
 	}
 
-	private IPacketReceiver<ArrayOfMatchInfosPacket> generateMatchesReceiver() {
+	private IPacketReceiver<MatchArrayPacket> generateMatchesReceiver() {
 		return packet -> {
 			List<IJoinableGame> openGames = new LinkedList<>();
-			for (MatchInfoPacket matchInfo : packet.getMatches()) {
-				openGames.add(new JoinableGame(matchInfo));
+			for (Match match : packet.getMatches()) {
+				openGames.add(new JoinableGame(match));
 			}
 			joinableGames.setList(openGames);
 		};
@@ -69,14 +70,19 @@ public class MultiplayerConnector implements IMultiplayerConnector, IClientConne
 
 	@Override
 	public IJoiningGame joinMultiplayerGame(IJoinableGame game) throws IllegalStateException {
-		MultiplayerGame multiplayerGame = new MultiplayerGame(networkClientFactory);
-		return multiplayerGame.join(game.getId());
+		return new MultiplayerGame(networkClientFactory).join(game.getId());
 	}
 
 	@Override
-	public IJoiningGame openNewMultiplayerGame(IOpenMultiplayerGameInfo gameInfo) {
-		MultiplayerGame multiplayerGame = new MultiplayerGame(networkClientFactory);
-		return multiplayerGame.openNewGame(gameInfo);
+	public void openNewMultiplayerGame(IOpenMultiplayerGameInfo gameInfo) {
+		new Thread("OpenNewMultiplayerGame") {
+			@Override
+			public void run() {
+				final IMapDefinition mapDefinition = gameInfo.getMapDefinition();
+				final MapInfoPacket mapInfoPacket = new MapInfoPacket(mapDefinition.getMapId(), mapDefinition.getMapName(), "", "", mapDefinition.getMaxPlayers());
+				networkClientFactory.getNetworkClient().openNewMatch(gameInfo.getMatchName(), gameInfo.getMaxPlayers(), mapInfoPacket);
+			}
+		}.start();
 	}
 
 	@Override
@@ -102,7 +108,8 @@ public class MultiplayerConnector implements IMultiplayerConnector, IClientConne
 	@Override
 	public boolean hasConnectionFailed() {
 		AsyncNetworkClientConnector.AsyncNetworkClientFactoryState state = networkClientFactory.getState();
-		return state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.FAILED_CONNECTING || state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.FAILED_SERVER_NOT_FOUND || state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.CLOSED;
+		return state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.FAILED_CONNECTING || state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.FAILED_SERVER_NOT_FOUND
+				|| state == AsyncNetworkClientConnector.AsyncNetworkClientFactoryState.CLOSED;
 	}
 
 	@Override
@@ -133,13 +140,13 @@ public class MultiplayerConnector implements IMultiplayerConnector, IClientConne
 	@Override
 	public void action(EClientAction action, Object argument) {
 		switch (action) {
-			case CLOSE:
-				networkClientFactory.close();
-				break;
-			case FIND_MAP:
-			case DOWNLOAD_MAP:
-			case GET_MAPS_DIR:
-				break;
+		case CLOSE:
+			networkClientFactory.close();
+			break;
+		case FIND_MAP:
+		case DOWNLOAD_MAP:
+		case GET_MAPS_DIR:
+			break;
 		}
 	}
 }

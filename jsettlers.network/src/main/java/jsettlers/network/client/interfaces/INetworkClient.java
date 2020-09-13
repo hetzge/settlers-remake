@@ -15,7 +15,6 @@
 package jsettlers.network.client.interfaces;
 
 import jsettlers.network.client.receiver.IPacketReceiver;
-import jsettlers.network.common.packets.ArrayOfMatchInfosPacket;
 import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.MapInfoPacket;
 import jsettlers.network.common.packets.MatchInfoPacket;
@@ -23,6 +22,7 @@ import jsettlers.network.common.packets.MatchInfoUpdatePacket;
 import jsettlers.network.common.packets.MatchStartPacket;
 import jsettlers.network.common.packets.PlayerInfoPacket;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
+import jsettlers.network.server.lobby.network.MatchArrayPacket;
 import jsettlers.network.server.match.EPlayerState;
 
 /**
@@ -47,7 +47,7 @@ public interface INetworkClient {
 	 *             This exception might be thrown, if the {@link #logIn(String, String, IPacketReceiver)} operation is called when the
 	 *             {@link INetworkClient} is already logged in to the server.
 	 */
-	void logIn(String id, String name, IPacketReceiver<ArrayOfMatchInfosPacket> matchListReceiver) throws IllegalStateException;
+	void logIn(String id, String name, IPacketReceiver<MatchArrayPacket> matchListReceiver) throws IllegalStateException;
 
 	/**
 	 * Opens a new match on the server.
@@ -113,4 +113,12 @@ public interface INetworkClient {
 	int getRoundTripTimeInMs();
 
 	INetworkConnector getNetworkConnector();
+	
+	// ------ NEW
+	
+	void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo);
+
+	
+	
+	
 }

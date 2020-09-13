@@ -21,8 +21,8 @@ import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.client.NetworkClient;
 import jsettlers.network.client.interfaces.INetworkClient;
 import jsettlers.network.client.receiver.IPacketReceiver;
-import jsettlers.network.common.packets.ArrayOfMatchInfosPacket;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
+import jsettlers.network.server.lobby.network.MatchArrayPacket;
 
 /**
  * 
@@ -36,7 +36,7 @@ public class AsyncNetworkClientConnector {
 	private AsyncNetworkClientFactoryState state = AsyncNetworkClientFactoryState.CONNECTING_TO_SERVER;
 
 	public AsyncNetworkClientConnector(final String serverAddress, final String userId, final String userName,
-			final IPacketReceiver<ArrayOfMatchInfosPacket> matchesRetriever) {
+			final IPacketReceiver<MatchArrayPacket> matchesRetriever) {
 		new Thread("AsyncNetworkClientConnector") {
 			@Override
 			public void run() {
@@ -65,7 +65,7 @@ public class AsyncNetworkClientConnector {
 				};
 			}
 
-			private IPacketReceiver<ArrayOfMatchInfosPacket> generateMatchesRetriever(final IPacketReceiver<ArrayOfMatchInfosPacket> matchesRetriever) {
+			private IPacketReceiver<MatchArrayPacket> generateMatchesRetriever(final IPacketReceiver<MatchArrayPacket> matchesRetriever) {
 				return packet -> {
 					setState(AsyncNetworkClientFactoryState.CONNECTED_TO_SERVER);
 					matchesRetriever.receivePacket(packet);

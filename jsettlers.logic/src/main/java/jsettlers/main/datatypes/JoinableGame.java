@@ -18,6 +18,7 @@ import jsettlers.common.menu.IJoinableGame;
 import jsettlers.common.menu.IMapDefinition;
 import jsettlers.logic.map.loading.list.MapList;
 import jsettlers.network.common.packets.MatchInfoPacket;
+import jsettlers.network.server.lobby.core.Match;
 
 /**
  * This is a simple POJO implementing the {@link IJoinableGame} interface.
@@ -31,10 +32,10 @@ public class JoinableGame implements IJoinableGame {
 	private String name;
 	private IMapDefinition map;
 
-	public JoinableGame(MatchInfoPacket matchInfo) {
-		this.id = matchInfo.getId();
-		this.name = matchInfo.getMatchName();
-		this.map = MapList.getDefaultList().getMapById(matchInfo.getMapInfo().getId());
+	public JoinableGame(Match match) {
+		this.id = match.getId().getValue();
+		this.name = match.getName();
+		this.map = MapList.getDefaultList().getMapById(match.getLevelId().getValue());
 	}
 
 	@Override

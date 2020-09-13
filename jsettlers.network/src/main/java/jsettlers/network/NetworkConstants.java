@@ -133,7 +133,6 @@ public final class NetworkConstants {
 		IDENTIFY_USER,
 		REJECT_PACKET,
 		TEST_PACKET,
-		ARRAY_OF_MATCHES,
 		MATCH_STARTED,
 
 		REQUEST_OPEN_NEW_MATCH,
@@ -152,7 +151,6 @@ public final class NetworkConstants {
 		
 		// TODO replace MATCH_INFO_UPDATE
 		UPDATE_MATCH,
-		// TODO replace ARRAY_OF_MATCHES
 		UPDATE_MATCHES;
 
 		private static final ENetworkKey[] values = ENetworkKey.values();
