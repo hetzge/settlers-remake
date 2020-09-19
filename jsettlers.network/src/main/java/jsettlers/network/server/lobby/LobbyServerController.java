@@ -6,7 +6,6 @@ import java.util.function.Consumer;
 
 import jsettlers.network.NetworkConstants;
 import jsettlers.network.NetworkConstants.ENetworkKey;
-import jsettlers.network.common.packets.BooleanMessagePacket;
 import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.IdPacket;
 import jsettlers.network.common.packets.OpenNewMatchPacket;
@@ -22,6 +21,7 @@ import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchPacket;
+import jsettlers.network.server.lobby.network.PlayerPacket;
 import jsettlers.network.server.match.MatchesListSendingTimerTask;
 
 public final class LobbyServerController {
@@ -48,7 +48,7 @@ public final class LobbyServerController {
 	public void setup(Channel channel) {
 		channel.registerListener(new Listener<>(ENetworkKey.IDENTIFY_USER, PlayerInfoPacket.class, packet -> {
 			final User user = new User(new UserId(packet.getId()), packet.getName(), channel);
-			lobby.join(user);
+			lobby.joinLobby(user);
 			setup(user);
 		}));
 	}
@@ -70,14 +70,14 @@ public final class LobbyServerController {
 		channel.registerListener(new Listener<>(ENetworkKey.REQUEST_START_MATCH, EmptyPacket.class, packet -> {
 			lobby.startMatch(user.getId(), matchesTaskTimer);
 		}));
-		channel.registerListener(new Listener<>(ENetworkKey.CHANGE_START_FINISHED, BooleanMessagePacket.class, packet -> {
-			// TODO
-		}));
 		channel.registerListener(new Listener<>(ENetworkKey.CHAT_MESSAGE, ChatMessagePacket.class, packet -> {
 			lobby.sendMatchChatMessage(user.getId(), packet.getMessage());
 		}));
 		channel.registerListener(new Listener<>(ENetworkKey.UPDATE_MATCH, MatchPacket.class, packet -> {
-			lobby.update(packet.getMatch());
+			lobby.update(user.getId(), packet.getMatch());
+		}));
+		channel.registerListener(new Listener<>(ENetworkKey.UPDATE_PLAYER, PlayerPacket.class, packet -> {
+			lobby.update(user.getId(), packet.getPlayer());
 		}));
 		channel.registerListener(new Listener<>(ENetworkKey.TIME_SYNC, TimeSyncPacket.class, packet -> {
 			lobby.sendMatchTimeSync(user.getId(), packet);

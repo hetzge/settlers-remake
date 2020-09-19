@@ -6,11 +6,11 @@ public final class Player {
 
 	private final PlayerId id;
 	private final String name;
-	private final Civilisation civilisation;
-	private final PlayerType type;
-	private final int position;
-	private final int team;
-	private final boolean ready;
+	private Civilisation civilisation;
+	private PlayerType type;
+	private int position;
+	private int team;
+	private boolean ready;
 
 	public Player(PlayerId id, String name, Civilisation civilisation, PlayerType type, int position, int team, boolean ready) {
 		this.id = id;
@@ -22,44 +22,12 @@ public final class Player {
 		this.ready = ready;
 	}
 
-	public Player update(Player player) {
-		Player newPlayer = this;
-		if (player.civilisation != civilisation) {
-			newPlayer = newPlayer.withCivilisation(player.civilisation);
-		}
-		if (player.type != type) {
-			newPlayer = newPlayer.withType(player.type);
-		}
-		if (player.team != team) {
-			newPlayer = newPlayer.withTeam(player.team);
-		}
-		if (player.position != position) {
-			newPlayer = newPlayer.withPosition(player.position);
-		}
-		if (player.ready != ready) {
-			newPlayer = newPlayer.withReady(player.ready);
-		}
-		return newPlayer;
-	}
-
-	public Player withCivilisation(Civilisation civilisation) {
-		return new Player(id, name, civilisation, type, position, team, ready);
-	}
-
-	public Player withType(PlayerType type) {
-		return new Player(id, name, civilisation, type, position, team, ready);
-	}
-
-	public Player withPosition(int position) {
-		return new Player(id, name, civilisation, type, position, position, ready);
-	}
-
-	public Player withTeam(int team) {
-		return new Player(id, name, civilisation, type, team, team, ready);
-	}
-
-	public Player withReady(boolean ready) {
-		return new Player(id, name, civilisation, type, position, team, ready);
+	public void set(Player player) {
+		setCivilisation(player.civilisation);
+		setType(player.type);
+		setPosition(player.position);
+		setReady(player.ready);
+		setTeam(player.team);
 	}
 
 	public boolean isHost() {
@@ -92,6 +60,26 @@ public final class Player {
 
 	public boolean isReady() {
 		return ready;
+	}
+
+	public void setCivilisation(Civilisation civilisation) {
+		this.civilisation = civilisation;
+	}
+
+	public void setType(PlayerType type) {
+		this.type = type;
+	}
+
+	public void setPosition(int position) {
+		this.position = position;
+	}
+
+	public void setTeam(int team) {
+		this.team = team;
+	}
+
+	public void setReady(boolean ready) {
+		this.ready = ready;
 	}
 
 	@Override

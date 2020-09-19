@@ -16,9 +16,9 @@ public final class Match {
 	private final String name;
 	private final LevelId levelId;
 	private final Player[] players;
-	private final ResourceAmount resourceAmount;
-	private final Duration peaceTime;
-	private final MatchState state;
+	private ResourceAmount resourceAmount;
+	private Duration peaceTime;
+	private MatchState state;
 
 	public Match(MatchId id, String name, LevelId levelId, Player[] players, ResourceAmount resourceAmount, Duration peaceTime, MatchState state) {
 		this.id = id;
@@ -30,21 +30,14 @@ public final class Match {
 		this.state = state;
 	}
 
-	public Match update(Match match) {
-		Match newMatch = this;
-		if (!match.getResourceAmount().equals(newMatch.getResourceAmount())) {
-			newMatch = newMatch.withResourceAmount(match.getResourceAmount());
-		}
-		if (!match.getPeaceTime().equals(newMatch.getPeaceTime())) {
-			newMatch = newMatch.withPeaceTime(match.getPeaceTime());
-		}
-		final Player[] newPlayers = match.getPlayers();
-		for (int i = 0; i < newPlayers.length; i++) {
-			final Player newPlayer = newPlayers[i];
-			final Player oldPlayer = getPlayer(newPlayer.getId()).orElseGet(() -> players[newPlayer.getPosition()]);
-			newMatch = newMatch.withPlayer(oldPlayer.update(newPlayer));
-		}
-		return newMatch;
+	public void update(Match match) {
+		setPeaceTime(match.peaceTime);
+		setResourceAmount(match.resourceAmount);
+		setState(match.state);
+	}
+
+	public boolean contains(PlayerId playerId) {
+		return getPlayer(playerId).isPresent();
 	}
 
 	public Optional<Player> getPlayer(PlayerId playerId) {
@@ -72,26 +65,6 @@ public final class Match {
 			}
 		}
 		return true;
-	}
-
-	public Match withPlayer(Player player) {
-		final Player oldPlayer = getPlayer(player.getId()).orElseGet(() -> players[player.getPosition()]);
-		final Player[] clonedPlayers = players.clone();
-		clonedPlayers[oldPlayer.getPosition()] = players[player.getPosition()].withPosition(oldPlayer.getPosition());
-		clonedPlayers[player.getPosition()] = player;
-		return new Match(id, name, levelId, clonedPlayers, resourceAmount, peaceTime, state);
-	}
-
-	public Match withResourceAmount(ResourceAmount resourceAmount) {
-		return new Match(id, name, levelId, players, resourceAmount, peaceTime, state);
-	}
-
-	public Match withPeaceTime(Duration peaceTime) {
-		return new Match(id, name, levelId, players, resourceAmount, peaceTime, state);
-	}
-
-	public Match withState(MatchState state) {
-		return new Match(id, name, levelId, players, resourceAmount, peaceTime, state);
 	}
 
 	public MatchId getId() {
@@ -128,6 +101,28 @@ public final class Match {
 
 	public Logger createLogger() {
 		return LoggerManager.getMatchLogger(getId().getValue(), name);
+	}
+
+	public void setPlayerByPosition(Player newPlayer) {
+		players[newPlayer.getPosition()] = newPlayer;
+	}
+
+	public void setPlayerById(Player newPlayer) {
+		getPlayer(newPlayer.getId()).ifPresent(player -> {
+			players[player.getPosition()] = newPlayer;
+		});
+	}
+
+	public void setResourceAmount(ResourceAmount resourceAmount) {
+		this.resourceAmount = resourceAmount;
+	}
+
+	public void setPeaceTime(Duration peaceTime) {
+		this.peaceTime = peaceTime;
+	}
+
+	public void setState(MatchState state) {
+		this.state = state;
 	}
 
 	@Override

@@ -151,7 +151,8 @@ public final class NetworkConstants {
 		
 		// TODO replace MATCH_INFO_UPDATE
 		UPDATE_MATCH,
-		UPDATE_MATCHES;
+		UPDATE_MATCHES,
+		UPDATE_PLAYER;
 
 		private static final ENetworkKey[] values = ENetworkKey.values();
 		private final byte ordinal;

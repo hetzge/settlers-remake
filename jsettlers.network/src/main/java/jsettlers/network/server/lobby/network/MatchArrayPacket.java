@@ -35,10 +35,10 @@ public class MatchArrayPacket extends Packet {
 		for (int i = 0; i < matches.length; i++) {
 			final MatchPacket matchPacket = new MatchPacket();
 			matchPacket.deserialize(dis);
-			matches[i] = matchPacket.getMatch();
+			this.matches[i] = matchPacket.getMatch();
 		}
 	}
-	
+
 	public Match[] getMatches() {
 		return matches;
 	}

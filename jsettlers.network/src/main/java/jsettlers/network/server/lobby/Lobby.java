@@ -53,7 +53,7 @@ public final class Lobby {
 		this.timerTaskByMatchId = new ConcurrentHashMap<>();
 	}
 
-	public void join(User user) {
+	public void joinLobby(User user) {
 		System.out.println("Lobby.join(" + user + ")");
 
 		// If user already exists leave first
@@ -75,30 +75,37 @@ public final class Lobby {
 		});
 	}
 
-	public void createMatch(UserId userId, String matchName, LevelId levelId, int maxPlayers) {
+	public MatchId createMatch(UserId userId, String matchName, LevelId levelId, int maxPlayers) {
 		System.out.println("Lobby.createMatch(" + userId + ", " + matchName + ", " + levelId + ", " + maxPlayers + ")");
 		final MatchId matchId = MatchId.generate();
 		final Player[] players = new Player[maxPlayers];
 		for (int i = 0; i < players.length; i++) {
 			players[i] = new Player(PlayerId.generate(), "Player-" + i, Civilisation.ROMAN, PlayerType.KI_HARD, i, i + 1, true);
 		}
-		update(new Match(matchId, matchName, levelId, players, ResourceAmount.HIGH, Duration.ZERO, MatchState.OPENED));
+		final Match match = new Match(matchId, matchName, levelId, players, ResourceAmount.HIGH, Duration.ZERO, MatchState.OPENED);
+		matchById.put(matchId, match);
+		sendMatchUpdate(match);
 		joinMatch(userId, matchId);
+		return matchId;
 	}
 
 	public void joinMatch(UserId userId, MatchId matchId) {
 		Optional.ofNullable(userById.get(userId)).ifPresent(user -> {
 			Optional.ofNullable(matchById.get(matchId)).ifPresent(match -> {
-				System.out.println("Lobby.joinMatch(" + userId + ", " + matchId + ")");
-				// Leave match first if user already contained
-				leaveMatch(userId);
-				match.findNextHumanPlayerPosition().ifPresent(position -> {
-					// Add player to match
-					final Player existingPlayer = match.getPlayers()[position];
-					update(match.withPlayer(new Player(userId.getPlayerId(), user.getUsername(), existingPlayer.getCivilisation(), PlayerType.HUMAN, position, existingPlayer.getTeam(), false)));
-				});
-				// Set logger
-				user.getChannel().setLogger(match.createLogger());
+				// Only join if not already in match
+				if (!match.contains(user.getId().getPlayerId())) {
+					System.out.println("Lobby.joinMatch(" + userId + ", " + matchId + ")");
+					// Leave match first if user already contained
+					leaveMatch(userId);
+					match.findNextHumanPlayerPosition().ifPresent(position -> {
+						// Add player to match
+						final Player existingPlayer = match.getPlayers()[position];
+						match.setPlayerByPosition(new Player(userId.getPlayerId(), user.getUsername(), existingPlayer.getCivilisation(), PlayerType.HUMAN, position, existingPlayer.getTeam(), false));
+						sendMatchUpdate(match);
+					});
+					// Set logger
+					user.getChannel().setLogger(match.createLogger());
+				}
 			});
 		});
 	}
@@ -110,8 +117,8 @@ public final class Lobby {
 			match.getPlayer(playerId).ifPresent(existingPlayer -> {
 				if (!existingPlayer.isHost()) {
 					// Replace with empty player
-					update(match
-							.withPlayer(new Player(PlayerId.generate(), "---", existingPlayer.getCivilisation(), PlayerType.EMPTY, existingPlayer.getPosition(), existingPlayer.getTeam(), true)));
+					match.setPlayerByPosition(new Player(PlayerId.generate(), "---", existingPlayer.getCivilisation(), PlayerType.EMPTY, existingPlayer.getPosition(), existingPlayer.getTeam(), true));
+					sendMatchUpdate(match);
 				} else {
 					// Cancel and remove the timer task
 					Optional.ofNullable(timerTaskByMatchId.get(match.getId())).ifPresent(TimerTask::cancel);
@@ -167,15 +174,34 @@ public final class Lobby {
 			}
 
 			// Set match running
-			update(match.withState(MatchState.RUNNING));
+			match.setState(MatchState.RUNNING);
+			sendMatchUpdate(match);
 		});
 	}
 
-	// TODO add userid and access control
-	void update(Match match) {
-		final Match newMatch = matchById.computeIfAbsent(match.getId(), key -> match).update(match);
-		matchById.put(match.getId(), newMatch);
-		sendMatchUpdate(newMatch);
+	public void update(UserId userId, Match matchUpdate) {
+		Optional.ofNullable(matchById.get(matchUpdate.getId())).ifPresent(existingMatch -> {
+			existingMatch.getPlayer(userId.getPlayerId()).ifPresent(player -> {
+				if (player.isHost()) {
+					existingMatch.update(matchUpdate);
+				}
+				for (Player playerUpdate : matchUpdate.getPlayers()) {
+					update(userId, playerUpdate);
+				}
+				sendMatchUpdate(existingMatch);
+			});
+		});
+	}
+
+	public void update(UserId userId, Player playerUpdate) {
+		getActiveMatch(userId).ifPresent(existingMatch -> {
+			existingMatch.getPlayer(userId.getPlayerId()).ifPresent(player -> {
+				if (player.getId().equals(userId.getPlayerId()) || player.isHost()) {
+					existingMatch.setPlayerById(playerUpdate);
+					sendMatchUpdate(existingMatch);
+				}
+			});
+		});
 	}
 
 	private void sendMatchUpdate(Match match) {
@@ -230,10 +256,14 @@ public final class Lobby {
 		return matchById.values();
 	}
 
+	public Collection<User> getUsers() {
+		return userById.values();
+	}
+
 	Optional<Match> getActiveMatch(UserId userId) {
 		final PlayerId playerId = userId.getPlayerId();
 		for (Match match : matchById.values()) {
-			if (match.getPlayer(playerId).isPresent()) {
+			if (match.contains(playerId)) {
 				return Optional.of(match);
 			}
 		}
