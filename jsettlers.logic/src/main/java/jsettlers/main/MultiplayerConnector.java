@@ -18,17 +18,13 @@ import java.util.LinkedList;
 import java.util.List;
 
 import jsettlers.common.menu.IJoinableGame;
-import jsettlers.common.menu.IJoiningGame;
-import jsettlers.common.menu.IMapDefinition;
 import jsettlers.common.menu.IMultiplayerConnector;
-import jsettlers.common.menu.IOpenMultiplayerGameInfo;
 import jsettlers.common.utils.collections.ChangingList;
 import jsettlers.main.datatypes.JoinableGame;
 import jsettlers.network.client.IClientConnection;
 import jsettlers.network.client.RemoteMapDirectory;
 import jsettlers.network.client.interfaces.INetworkClient;
 import jsettlers.network.client.receiver.IPacketReceiver;
-import jsettlers.network.common.packets.MapInfoPacket;
 import jsettlers.network.infrastructure.log.Logger;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.network.MatchArrayPacket;
@@ -68,31 +64,12 @@ public class MultiplayerConnector implements IMultiplayerConnector, IClientConne
 		return joinableGames;
 	}
 
-	@Override
-	public IJoiningGame joinMultiplayerGame(IJoinableGame game) throws IllegalStateException {
-		return new MultiplayerGame(networkClientFactory).join(game.getId());
+	public INetworkClient getNetworkClient() {
+		return networkClientFactory.getNetworkClient();
 	}
 
-	@Override
-	public void openNewMultiplayerGame(IOpenMultiplayerGameInfo gameInfo) {
-		new Thread("OpenNewMultiplayerGame") {
-			@Override
-			public void run() {
-				final IMapDefinition mapDefinition = gameInfo.getMapDefinition();
-				final MapInfoPacket mapInfoPacket = new MapInfoPacket(mapDefinition.getMapId(), mapDefinition.getMapName(), "", "", mapDefinition.getMaxPlayers());
-				networkClientFactory.getNetworkClient().openNewMatch(gameInfo.getMatchName(), gameInfo.getMaxPlayers(), mapInfoPacket);
-			}
-		}.start();
-	}
-
-	@Override
-	public int getRoundTripTimeInMs() {
-		INetworkClient networkClient = networkClientFactory.getNetworkClientAsync();
-		if (networkClient != null) {
-			return networkClient.getRoundTripTimeInMs();
-		} else {
-			return Integer.MAX_VALUE;
-		}
+	public INetworkClient getNetworkClientAsync() {
+		return networkClientFactory.getNetworkClientAsync();
 	}
 
 	@Override

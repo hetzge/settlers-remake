@@ -27,19 +27,17 @@ import javax.swing.JTextArea;
 import javax.swing.SwingUtilities;
 
 import java8.util.stream.Collectors;
-import jsettlers.common.menu.EProgressState;
-import jsettlers.common.menu.IJoinPhaseMultiplayerGameConnector;
-import jsettlers.common.menu.IJoiningGame;
-import jsettlers.common.menu.IJoiningGameListener;
 import jsettlers.common.menu.IMultiplayerConnector;
 import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.list.MapList;
+import jsettlers.main.MultiplayerConnector;
 import jsettlers.main.swing.JSettlersFrame;
 import jsettlers.main.swing.menu.mainmenu.NetworkGameMapLoader;
 import jsettlers.main.swing.menu.openpanel.OpenPanel;
 import jsettlers.main.swing.settings.ServerEntry;
 import jsettlers.network.client.IClientConnection;
+import jsettlers.network.client.interfaces.INetworkClient;
 
 public class ServerConnectionPanel extends JPanel {
 
@@ -71,24 +69,24 @@ public class ServerConnectionPanel extends JPanel {
 		IClientConnection connection = entry.getConnection();
 		boolean conMaps = connection.getMaps("/") != null;
 		int i = 1;
-		if(!conMaps && maps != null) {
+		if (!conMaps && maps != null) {
 			root.removeTabAt(i);
 			maps = null;
-		} else if(conMaps && maps == null) {
-			root.insertTab(Labels.getString("multiplayer-mapslist-title"), null, maps = new RemoteMapDirectoryPanel(connection, openSinglePlayerPanel),  null, i);
+		} else if (conMaps && maps == null) {
+			root.insertTab(Labels.getString("multiplayer-mapslist-title"), null, maps = new RemoteMapDirectoryPanel(connection, openSinglePlayerPanel), null, i);
 		}
-		if(maps != null) {
+		if (maps != null) {
 			maps.update();
 			i++;
 		}
 
 		boolean conMatch = connection.isConnected() && connection instanceof IMultiplayerConnector;
-		if(!conMatch && newMatch != null) {
+		if (!conMatch && newMatch != null) {
 			root.removeTabAt(i);
-			root.removeTabAt(i+1);
+			root.removeTabAt(i + 1);
 			newMatch = null;
 			joinMatch = null;
-		} else if(conMatch && newMatch == null){
+		} else if (conMatch && newMatch == null) {
 			newMatch = new OpenPanel(MapList.getDefaultList().getFreshMaps().getItems(), this::openNewMatch);
 			SwingUtilities.updateComponentTreeUI(newMatch);
 			root.insertTab(Labels.getString("multiplayer-newmatch-title"), null, newMatch, null, i);
@@ -96,7 +94,7 @@ public class ServerConnectionPanel extends JPanel {
 			joinMatch = new OpenPanel(Collections.emptyList(), this::joinMatch);
 			SwingUtilities.updateComponentTreeUI(joinMatch);
 
-			((IMultiplayerConnector)connection).getJoinableMultiplayerGames()
+			((IMultiplayerConnector) connection).getJoinableMultiplayerGames()
 					.setListener(networkGames -> {
 						List<MapLoader> mapLoaders = stream(networkGames.getItems())
 								.map(NetworkGameMapLoader::new)
@@ -104,31 +102,30 @@ public class ServerConnectionPanel extends JPanel {
 						SwingUtilities.invokeLater(() -> joinMatch.setMapLoaders(mapLoaders));
 					});
 
-			root.insertTab(Labels.getString("multiplayer-joinmatch-title"), null, joinMatch, null, i+1);
+			root.insertTab(Labels.getString("multiplayer-joinmatch-title"), null, joinMatch, null, i + 1);
 		}
 
-		if(newMatch != null) {
+		if (newMatch != null) {
 			i += 2;
 		}
 	}
 
 	private void openNewMatch(MapLoader loader) {
-		settlersFrame.showNewMultiPlayerGameMenu(loader, (IMultiplayerConnector)entry.getConnection());
+		SwingUtilities.invokeLater(() -> {
+			final INetworkClient networkClient = ((MultiplayerConnector) entry.getConnection()).getNetworkClient();
+			settlersFrame.showNewMultiPlayerGameMenu(networkClient, loader);
+		});
 	}
 
 	private void joinMatch(MapLoader loader) {
-		NetworkGameMapLoader networkGameMapLoader = (NetworkGameMapLoader) loader;
-		IJoiningGame joiningGame = ((IMultiplayerConnector)entry.getConnection()).joinMultiplayerGame(networkGameMapLoader.getJoinableGame());
-		joiningGame.setListener(new IJoiningGameListener() {
-			@Override
-			public void joinProgressChanged(EProgressState state, float progress) {
-			}
-
-			@Override
-			public void gameJoined(IJoinPhaseMultiplayerGameConnector connector) {
-				SwingUtilities.invokeLater(
-						() -> settlersFrame.showJoinMultiplayerMenu(connector, MapList.getDefaultList().getMapById(networkGameMapLoader.getMapId()), ((IMultiplayerConnector)entry.getConnection()).getPlayerUUID()));
-			}
+		SwingUtilities.invokeLater(() -> {
+			final NetworkGameMapLoader networkGameMapLoader = (NetworkGameMapLoader) loader;
+			final MultiplayerConnector multiplayerConnector = (MultiplayerConnector) entry.getConnection();
+			final INetworkClient networkClient = multiplayerConnector.getNetworkClient();
+			settlersFrame.showJoinMultiplayerMenu(
+					networkClient,
+					MapList.getDefaultList().getMapById(networkGameMapLoader.getMapId()),
+					networkGameMapLoader.getJoinableGame().getId());
 		});
 	}
 }

@@ -22,6 +22,7 @@ import jsettlers.network.infrastructure.channel.packet.Packet;
  * 
  * @author Andreas Eberle
  */
+@FunctionalInterface
 public interface IPacketReceiver<T extends Packet> {
 
 	void receivePacket(T packet);

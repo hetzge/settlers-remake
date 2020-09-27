@@ -2,19 +2,23 @@ package jsettlers.network.server.lobby.core;
 
 import java.util.Objects;
 
+import jsettlers.common.player.ECivilisation;
+
 public final class Player {
 
 	private final PlayerId id;
 	private final String name;
-	private Civilisation civilisation;
+	private EPlayerState state;
+	private ECivilisation civilisation;
 	private PlayerType type;
 	private int position;
 	private int team;
 	private boolean ready;
 
-	public Player(PlayerId id, String name, Civilisation civilisation, PlayerType type, int position, int team, boolean ready) {
+	public Player(PlayerId id, String name, EPlayerState state, ECivilisation civilisation, PlayerType type, int position, int team, boolean ready) {
 		this.id = id;
 		this.name = name;
+		this.state = state;
 		this.civilisation = civilisation;
 		this.type = type;
 		this.position = position;
@@ -42,7 +46,11 @@ public final class Player {
 		return name;
 	}
 
-	public Civilisation getCivilisation() {
+	public EPlayerState getState() {
+		return state;
+	}
+
+	public ECivilisation getCivilisation() {
 		return civilisation;
 	}
 
@@ -62,8 +70,12 @@ public final class Player {
 		return ready;
 	}
 
-	public void setCivilisation(Civilisation civilisation) {
+	public void setCivilisation(ECivilisation civilisation) {
 		this.civilisation = civilisation;
+	}
+
+	public void setState(EPlayerState state) {
+		this.state = state;
 	}
 
 	public void setType(PlayerType type) {
@@ -101,6 +113,6 @@ public final class Player {
 
 	@Override
 	public String toString() {
-		return String.format("Player [id=%s, name=%s, civilisation=%s, type=%s, position=%s, team=%s, ready=%s]", id, name, civilisation, type, position, team, ready);
+		return String.format("Player [id=%s, name=%s, state=%s, civilisation=%s, type=%s, position=%s, team=%s, ready=%s]", id, name, state, civilisation, type, position, team, ready);
 	}
 }

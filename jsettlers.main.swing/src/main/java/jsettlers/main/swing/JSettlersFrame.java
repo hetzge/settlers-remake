@@ -33,23 +33,20 @@ import go.graphics.region.Region;
 import go.graphics.sound.SoundPlayer;
 import go.graphics.swing.AreaContainer;
 import go.graphics.swing.sound.SwingSoundPlayer;
-
 import jsettlers.common.CommitInfo;
-import jsettlers.common.menu.IJoinPhaseMultiplayerGameConnector;
 import jsettlers.common.menu.IMapInterfaceConnector;
-import jsettlers.common.menu.IMultiplayerConnector;
 import jsettlers.common.menu.IStartedGame;
 import jsettlers.common.menu.IStartingGame;
 import jsettlers.graphics.map.ETextDrawPosition;
 import jsettlers.graphics.map.MapContent;
 import jsettlers.logic.map.loading.MapLoader;
-import jsettlers.main.MultiplayerConnector;
-import jsettlers.main.swing.menu.joinpanel.JoinGamePanel;
+import jsettlers.main.swing.menu.joinpanel.MultiplayerJoinGameConnector;
+import jsettlers.main.swing.menu.joinpanel.SingleplayerJoinGameConnector;
 import jsettlers.main.swing.menu.mainmenu.MainMenuPanel;
 import jsettlers.main.swing.menu.startinggamemenu.StartingGamePanel;
 import jsettlers.main.swing.menu.statspanel.EndgameStatsPanel;
 import jsettlers.main.swing.settings.SettingsManager;
-import jsettlers.main.swing.settings.UiPlayer;
+import jsettlers.network.client.interfaces.INetworkClient;
 
 /**
  * @author codingberlin
@@ -60,7 +57,6 @@ public class JSettlersFrame extends JFrame {
 	private final MainMenuPanel mainPanel;
 	private final EndgameStatsPanel endgameStatsPanel = new EndgameStatsPanel(this);
 	private final StartingGamePanel startingGamePanel = new StartingGamePanel(this);
-	private final JoinGamePanel joinGamePanel = new JoinGamePanel(this);
 	private final SoundPlayer soundPlayer = new SwingSoundPlayer(SettingsManager.getInstance());
 
 	private Timer redrawTimer;
@@ -102,7 +98,8 @@ public class JSettlersFrame extends JFrame {
 	}
 
 	private void updateFullScreenMode() {
-		if(areaContainer != null) areaContainer.removeSurface();
+		if (areaContainer != null)
+			areaContainer.removeSurface();
 		dispose();
 
 		setResizable(!fullScreen);
@@ -114,7 +111,8 @@ public class JSettlersFrame extends JFrame {
 		GraphicsEnvironment graphicsEnvironment = GraphicsEnvironment.getLocalGraphicsEnvironment();
 		GraphicsDevice graphicsDevice = graphicsEnvironment.getDefaultScreenDevice();
 		graphicsDevice.setFullScreenWindow(fullScreen ? this : null);
-		if(areaContainer != null) areaContainer.notifyResize();
+		if (areaContainer != null)
+			areaContainer.notifyResize();
 	}
 
 	private void abortRedrawTimerIfPresent() {
@@ -156,7 +154,7 @@ public class JSettlersFrame extends JFrame {
 		area.set(region);
 
 		int fpsLimit = SettingsManager.getInstance().getFpsLimit();
-		if(fpsLimit != 0) {
+		if (fpsLimit != 0) {
 			redrawTimer = new Timer("opengl-redraw");
 			redrawTimer.schedule(new TimerTask() {
 				@Override
@@ -167,7 +165,8 @@ public class JSettlersFrame extends JFrame {
 		}
 
 		SwingUtilities.invokeLater(() -> {
-			setContentPane(areaContainer = new AreaContainer(area, SettingsManager.getInstance().getBackend(), SettingsManager.getInstance().isGraphicsDebug(), SettingsManager.getInstance().getGuiScale()));
+			setContentPane(
+					areaContainer = new AreaContainer(area, SettingsManager.getInstance().getBackend(), SettingsManager.getInstance().isGraphicsDebug(), SettingsManager.getInstance().getGuiScale()));
 			areaContainer.updateFPSLimit(fpsLimit);
 			revalidate();
 			repaint();
@@ -175,22 +174,19 @@ public class JSettlersFrame extends JFrame {
 	}
 
 	public void showNewSinglePlayerGameMenu(MapLoader mapLoader) {
-		joinGamePanel.setSinglePlayerMap(mapLoader);
-		setNewContentPane(joinGamePanel);
+		setNewContentPane(new SingleplayerJoinGameConnector(this, mapLoader).setup());
 	}
 
-	public void showNewMultiPlayerGameMenu(MapLoader mapLoader, IMultiplayerConnector connector) {
-		joinGamePanel.setNewMultiPlayerMap(mapLoader, connector);
-		setNewContentPane(joinGamePanel);
+	public void showNewMultiPlayerGameMenu(INetworkClient client, MapLoader mapLoader) {
+		setNewContentPane(new MultiplayerJoinGameConnector(this, client, mapLoader, null).setup());
 	}
 
-	public void showJoinMultiplayerMenu(IJoinPhaseMultiplayerGameConnector joinPhaseMultiplayerGameConnector, MapLoader mapLoader, String playerUUID) {
-		joinGamePanel.setJoinMultiPlayerMap(joinPhaseMultiplayerGameConnector, mapLoader, playerUUID);
-		setNewContentPane(joinGamePanel);
+	public void showJoinMultiplayerMenu(INetworkClient client, MapLoader mapLoader, String matchId) {
+		setNewContentPane(new MultiplayerJoinGameConnector(this, client, mapLoader, matchId).setup());
 	}
 
 	public void showEndgameStatistics(IStartedGame game) {
-		if(areaContainer != null) {
+		if (areaContainer != null) {
 			areaContainer.disposeAll();
 			areaContainer = null;
 		}

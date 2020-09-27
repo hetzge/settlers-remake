@@ -17,11 +17,14 @@ package jsettlers.main;
 import java.io.IOException;
 import java.net.UnknownHostException;
 
+import jsettlers.network.NetworkConstants;
 import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.client.NetworkClient;
 import jsettlers.network.client.interfaces.INetworkClient;
 import jsettlers.network.client.receiver.IPacketReceiver;
+import jsettlers.network.infrastructure.channel.AsyncChannel;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
+import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchArrayPacket;
 
 /**
@@ -41,9 +44,9 @@ public class AsyncNetworkClientConnector {
 			@Override
 			public void run() {
 				try {
-					networkClient = new NetworkClient(serverAddress, null);
+					networkClient = new NetworkClient(new AsyncChannel(serverAddress, NetworkConstants.Server.SERVER_PORT), new UserId(userId));
 					networkClient.registerRejectReceiver(generateRejectReceiver());
-					networkClient.logIn(userId, userName, generateMatchesRetriever(matchesRetriever));
+					networkClient.logIn(userName, generateMatchesRetriever(matchesRetriever));
 				} catch (IllegalStateException e) {
 					e.printStackTrace(); // this can never happen
 					setState(AsyncNetworkClientFactoryState.FAILED_CONNECTING);

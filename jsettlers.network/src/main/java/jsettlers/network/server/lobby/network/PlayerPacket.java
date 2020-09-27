@@ -5,8 +5,9 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Objects;
 
+import jsettlers.common.player.ECivilisation;
 import jsettlers.network.infrastructure.channel.packet.Packet;
-import jsettlers.network.server.lobby.core.Civilisation;
+import jsettlers.network.server.lobby.core.EPlayerState;
 import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.PlayerId;
 import jsettlers.network.server.lobby.core.PlayerType;
@@ -27,6 +28,7 @@ public class PlayerPacket extends Packet {
 	public void serialize(DataOutputStream dos) throws IOException {
 		dos.writeUTF(player.getId().getValue());
 		dos.writeUTF(player.getName());
+		dos.writeInt(player.getState().ordinal());
 		dos.writeInt(player.getCivilisation().ordinal());
 		dos.writeInt(player.getType().ordinal());
 		dos.writeInt(player.getPosition());
@@ -39,7 +41,8 @@ public class PlayerPacket extends Packet {
 		this.player = new Player(
 				new PlayerId(dis.readUTF()),
 				dis.readUTF(),
-				Civilisation.VALUES[dis.readInt()],
+				EPlayerState.VALUES[dis.readInt()],
+				ECivilisation.VALUES[dis.readInt()],
 				PlayerType.VALUES[dis.readInt()],
 				dis.readInt(),
 				dis.readInt(),

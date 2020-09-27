@@ -9,6 +9,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
+import jsettlers.common.player.ECivilisation;
 import jsettlers.network.NetworkConstants;
 import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.common.packets.ChatMessagePacket;
@@ -16,7 +17,7 @@ import jsettlers.network.common.packets.TimeSyncPacket;
 import jsettlers.network.infrastructure.channel.Channel;
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.infrastructure.log.LoggerManager;
-import jsettlers.network.server.lobby.core.Civilisation;
+import jsettlers.network.server.lobby.core.EPlayerState;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
@@ -29,6 +30,7 @@ import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchArrayPacket;
 import jsettlers.network.server.lobby.network.MatchPacket;
+import jsettlers.network.server.lobby.network.PlayerPacket;
 import jsettlers.network.server.match.lockstep.TaskCollectingListener;
 import jsettlers.network.server.match.lockstep.TaskSendingTimerTask;
 
@@ -80,11 +82,11 @@ public final class Lobby {
 		final MatchId matchId = MatchId.generate();
 		final Player[] players = new Player[maxPlayers];
 		for (int i = 0; i < players.length; i++) {
-			players[i] = new Player(PlayerId.generate(), "Player-" + i, Civilisation.ROMAN, PlayerType.KI_HARD, i, i + 1, true);
+			players[i] = new Player(PlayerId.generate(), "Player-" + i, EPlayerState.UNKNOWN, ECivilisation.ROMAN, PlayerType.AI_HARD, i, i + 1, true);
 		}
 		final Match match = new Match(matchId, matchName, levelId, players, ResourceAmount.HIGH, Duration.ZERO, MatchState.OPENED);
 		matchById.put(matchId, match);
-		sendMatchUpdate(match);
+		sendMatchUpdate(ENetworkKey.UPDATE_MATCH, match);
 		joinMatch(userId, matchId);
 		return matchId;
 	}
@@ -100,8 +102,9 @@ public final class Lobby {
 					match.findNextHumanPlayerPosition().ifPresent(position -> {
 						// Add player to match
 						final Player existingPlayer = match.getPlayers()[position];
-						match.setPlayerByPosition(new Player(userId.getPlayerId(), user.getUsername(), existingPlayer.getCivilisation(), PlayerType.HUMAN, position, existingPlayer.getTeam(), false));
-						sendMatchUpdate(match);
+						match.setPlayerByPosition(new Player(userId.getPlayerId(), user.getUsername(), EPlayerState.UNKNOWN, existingPlayer.getCivilisation(), PlayerType.HUMAN, position,
+								existingPlayer.getTeam(), false));
+						sendMatchUpdate(ENetworkKey.UPDATE_MATCH, match);
 					});
 					// Set logger
 					user.getChannel().setLogger(match.createLogger());
@@ -117,8 +120,9 @@ public final class Lobby {
 			match.getPlayer(playerId).ifPresent(existingPlayer -> {
 				if (!existingPlayer.isHost()) {
 					// Replace with empty player
-					match.setPlayerByPosition(new Player(PlayerId.generate(), "---", existingPlayer.getCivilisation(), PlayerType.EMPTY, existingPlayer.getPosition(), existingPlayer.getTeam(), true));
-					sendMatchUpdate(match);
+					match.setPlayerByPosition(new Player(PlayerId.generate(), "---", EPlayerState.UNKNOWN, existingPlayer.getCivilisation(), PlayerType.EMPTY, existingPlayer.getPosition(),
+							existingPlayer.getTeam(), true));
+					sendMatchUpdate(ENetworkKey.UPDATE_MATCH, match);
 				} else {
 					// Cancel and remove the timer task
 					Optional.ofNullable(timerTaskByMatchId.get(match.getId())).ifPresent(TimerTask::cancel);
@@ -175,7 +179,17 @@ public final class Lobby {
 
 			// Set match running
 			match.setState(MatchState.RUNNING);
-			sendMatchUpdate(match);
+			sendMatchUpdate(ENetworkKey.MATCH_STARTED, match);
+		});
+	}
+
+	public void setStartFinished(UserId userId, boolean value) {
+		getActiveMatch(userId).ifPresent(existingMatch -> {
+			existingMatch.getPlayer(userId.getPlayerId()).ifPresent(player -> {
+				if (value) {
+					player.setState(EPlayerState.INGAME);
+				}
+			});
 		});
 	}
 
@@ -188,7 +202,7 @@ public final class Lobby {
 				for (Player playerUpdate : matchUpdate.getPlayers()) {
 					update(userId, playerUpdate);
 				}
-				sendMatchUpdate(existingMatch);
+				sendMatchUpdate(ENetworkKey.UPDATE_MATCH, existingMatch);
 			});
 		});
 	}
@@ -196,18 +210,32 @@ public final class Lobby {
 	public void update(UserId userId, Player playerUpdate) {
 		getActiveMatch(userId).ifPresent(existingMatch -> {
 			existingMatch.getPlayer(userId.getPlayerId()).ifPresent(player -> {
-				if (player.getId().equals(userId.getPlayerId()) || player.isHost()) {
-					existingMatch.setPlayerById(playerUpdate);
-					sendMatchUpdate(existingMatch);
+				System.out.println("Lobby.update(" + userId + ", " + playerUpdate + ")");
+				if (playerUpdate.getId().equals(userId.getPlayerId()) || player.isHost()) {
+					existingMatch.getPlayer(playerUpdate.getId()).ifPresent(existingPlayer -> {
+						existingPlayer.setCivilisation(playerUpdate.getCivilisation());
+						existingPlayer.setType(playerUpdate.getType());
+						existingPlayer.setTeam(playerUpdate.getTeam());
+						existingPlayer.setReady(playerUpdate.isReady());
+						sendPlayerUpdate(existingMatch, existingPlayer);
+					});
 				}
 			});
 		});
 	}
 
-	private void sendMatchUpdate(Match match) {
+	private void sendMatchUpdate(ENetworkKey networkKey, Match match) {
 		for (UserId userId : match.getUserIds()) {
 			Optional.ofNullable(userById.get(userId)).ifPresent(user -> {
-				user.getChannel().sendPacket(ENetworkKey.UPDATE_MATCH, new MatchPacket(match));
+				user.getChannel().sendPacket(networkKey, new MatchPacket(match));
+			});
+		}
+	}
+
+	private void sendPlayerUpdate(Match match, Player player) {
+		for (UserId userId : match.getUserIds()) {
+			Optional.ofNullable(userById.get(userId)).ifPresent(user -> {
+				user.getChannel().sendPacket(ENetworkKey.UPDATE_PLAYER, new PlayerPacket(player));
 			});
 		}
 	}
@@ -232,6 +260,7 @@ public final class Lobby {
 	}
 
 	public void sendMatchChatMessage(UserId authorUserId, String message) {
+		System.out.println("Lobby.sendMatchChatMessage(" + authorUserId + ", " + message + ")");
 		getActiveMatch(authorUserId).ifPresent(match -> {
 			sendMatchPacket(match, ENetworkKey.CHAT_MESSAGE, new ChatMessagePacket(authorUserId.getValue(), message));
 		});
@@ -269,5 +298,4 @@ public final class Lobby {
 		}
 		return Optional.empty();
 	}
-
 }

@@ -152,6 +152,10 @@ public final class NetworkConstants {
 		// TODO replace MATCH_INFO_UPDATE
 		UPDATE_MATCH,
 		UPDATE_MATCHES,
+		UPDATE_CIVILISATION,
+		UPDATE_TEAM,
+		UPDATE_PLAYER_TYPE,
+		UPDATE_READY,
 		UPDATE_PLAYER;
 
 		private static final ENetworkKey[] values = ENetworkKey.values();

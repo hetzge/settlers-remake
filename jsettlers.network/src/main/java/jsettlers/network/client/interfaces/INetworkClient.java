@@ -14,6 +14,7 @@
  *******************************************************************************/
 package jsettlers.network.client.interfaces;
 
+import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.client.receiver.IPacketReceiver;
 import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.MapInfoPacket;
@@ -21,7 +22,10 @@ import jsettlers.network.common.packets.MatchInfoPacket;
 import jsettlers.network.common.packets.MatchInfoUpdatePacket;
 import jsettlers.network.common.packets.MatchStartPacket;
 import jsettlers.network.common.packets.PlayerInfoPacket;
+import jsettlers.network.infrastructure.channel.IChannelListener;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
+import jsettlers.network.server.lobby.core.Player;
+import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchArrayPacket;
 import jsettlers.network.server.match.EPlayerState;
 
@@ -32,22 +36,6 @@ import jsettlers.network.server.match.EPlayerState;
  * 
  */
 public interface INetworkClient {
-
-	/**
-	 * Tries to authenticate the user at the server and registers the given {@link IPacketReceiver} to receive the list of joinable matches. The
-	 * receiver will be called with a new list of matches form time to time.
-	 * 
-	 * @param id
-	 *            The id of the user. This must be a globally unique number and it must always be the same for the same player.
-	 * @param name
-	 *            The displayed name of the player. The name can always be changed.
-	 * @param matchListReceiver
-	 *            The receiver that gets the list of joinable matches.
-	 * @throws InvalidStateException
-	 *             This exception might be thrown, if the {@link #logIn(String, String, IPacketReceiver)} operation is called when the
-	 *             {@link INetworkClient} is already logged in to the server.
-	 */
-	void logIn(String id, String name, IPacketReceiver<MatchArrayPacket> matchListReceiver) throws IllegalStateException;
 
 	/**
 	 * Opens a new match on the server.
@@ -63,13 +51,11 @@ public interface INetworkClient {
 	 * @param matchStartedListener
 	 *            The listener that will be called, when the match starts.
 	 * @param matchInfoUpdatedListener
-	 *            The listener that will be called, when there are updates on the players or the match informations. For example when a player joined
-	 *            or left.
+	 *            The listener that will be called, when there are updates on the players or the match informations. For example when a player joined or left.
 	 * @param chatMessageReceiver
 	 *            The receiver for chat messages. It will be called with any received chat message.
 	 * @throws InvalidStateException
-	 *             This exception might be thrown, if the client is either not logged in to the server (see
-	 *             {@link #logIn(String, String, IPacketReceiver)}) or if the client is already in a match.
+	 *             This exception might be thrown, if the client is either not logged in to the server (see {@link #logIn(String, String, IPacketReceiver)}) or if the client is already in a match.
 	 */
 	void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo, long randomSeed,
 			IPacketReceiver<MatchStartPacket> matchStartedListener, IPacketReceiver<MatchInfoUpdatePacket> matchInfoUpdatedListener,
@@ -96,29 +82,46 @@ public interface INetworkClient {
 
 	void setTeamId(byte teamId) throws IllegalStateException;
 
-	void sendChatMessage(String message) throws IllegalStateException;
+	void sendChatMessage(UserId userId, String message) throws IllegalStateException;
 
 	void leaveMatch();
 
 	void registerRejectReceiver(IPacketReceiver<RejectPacket> rejectListener);
 
-	EPlayerState getState();
-
-	MatchInfoPacket getMatchInfo();
-
-	PlayerInfoPacket getPlayerInfo();
-
 	void close();
 
 	int getRoundTripTimeInMs();
 
-	INetworkConnector getNetworkConnector();
-	
 	// ------ NEW
-	
+
+	void registerListener(IChannelListener listener);
+
+	void removeListener(ENetworkKey key);
+
 	void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo);
 
-	
-	
-	
+	void joinMatch(String matchId);
+
+	void updatePlayer(Player player);
+
+	IGameClock getGameClock();
+
+	void setStartFinished(boolean startFinished);
+
+	UserId getUserId();
+
+	/**
+	 * Tries to authenticate the user at the server and registers the given {@link IPacketReceiver} to receive the list of joinable matches. The receiver will be called with a new list of matches form
+	 * time to time.
+	 * 
+	 * @param name
+	 *            The displayed name of the player. The name can always be changed.
+	 * @param matchListReceiver
+	 *            The receiver that gets the list of joinable matches.
+	 * @throws InvalidStateException
+	 *             This exception might be thrown, if the {@link #logIn(String, String, IPacketReceiver)} operation is called when the {@link INetworkClient} is already logged in to the server.
+	 */
+	void logIn(String name, IPacketReceiver<MatchArrayPacket> matchesReceiver) throws IllegalStateException;
+
+	void startGameSynchronization();
 }

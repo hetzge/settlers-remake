@@ -12,9 +12,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import jsettlers.common.player.ECivilisation;
 import jsettlers.network.TestUtils;
 import jsettlers.network.infrastructure.channel.Channel;
-import jsettlers.network.server.lobby.core.Civilisation;
+import jsettlers.network.server.lobby.core.EPlayerState;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
@@ -147,11 +148,11 @@ public class LobbyTest {
 	public void test_update_player() {
 		lobby.joinLobby(userA);
 		lobby.createMatch(userA.getId(), MATCH_NAME, LEVEL_ID, 1);
-		lobby.update(userA.getId(), new Player(userA.getId().getPlayerId(), "Other", Civilisation.EGYPTIAN, PlayerType.HUMAN, 0, 2, true));
+		lobby.update(userA.getId(), new Player(userA.getId().getPlayerId(), "Other", EPlayerState.UNKNOWN, ECivilisation.EGYPTIAN, PlayerType.HUMAN, 0, 2, true));
 		final Player player = lobby.getActiveMatch(userA.getId()).get().getPlayer(userA.getId().getPlayerId()).get();
 		assertEquals(userA.getId().getPlayerId(), player.getId());
 		assertEquals("Other", player.getName());
-		assertEquals(Civilisation.EGYPTIAN, player.getCivilisation());
+		assertEquals(ECivilisation.EGYPTIAN, player.getCivilisation());
 		assertEquals(PlayerType.HUMAN, player.getType());
 		assertEquals(0, player.getPosition());
 		assertEquals(2, player.getTeam());

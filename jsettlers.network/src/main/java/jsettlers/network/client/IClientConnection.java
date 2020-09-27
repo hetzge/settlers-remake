@@ -16,6 +16,7 @@ package jsettlers.network.client;
 
 public interface IClientConnection {
 	boolean hasConnectionFailed();
+
 	boolean isConnected();
 
 	RemoteMapDirectory getMaps(String directory);

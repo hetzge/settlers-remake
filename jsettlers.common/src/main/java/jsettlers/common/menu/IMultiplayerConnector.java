@@ -33,30 +33,6 @@ public interface IMultiplayerConnector {
 	ChangingList<IJoinableGame> getJoinableMultiplayerGames();
 
 	/**
-	 * Joins the given multiplayer game.
-	 * 
-	 * @param game
-	 * @return
-	 */
-	IJoiningGame joinMultiplayerGame(IJoinableGame game)
-			throws IllegalStateException;
-
-	/**
-	 * Creates a new multiplayer game on the server and joins this new game.
-	 * 
-	 * @param gameInfo
-	 *            {@link IOpenMultiplayerGameInfo} object defining the parameters of the game.
-	 * @return
-	 */
-	void openNewMultiplayerGame(IOpenMultiplayerGameInfo gameInfo);
-
-	/**
-	 * @return Returns the round trip time in milliseconds<br>
-	 *         or {@link Integer#MAX_VALUE} if the client is not yet connected.
-	 */
-	int getRoundTripTimeInMs();
-
-	/**
 	 *
 	 * @return The playername of this client
 	 */

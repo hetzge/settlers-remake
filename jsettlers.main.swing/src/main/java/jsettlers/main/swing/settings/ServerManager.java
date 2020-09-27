@@ -26,6 +26,7 @@ import java.io.Reader;
 import java.io.Writer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.Semaphore;
 
 import java8.util.function.Consumer;
@@ -51,6 +52,7 @@ public class ServerManager {
 		if(instance == null) {
 			try(Reader serverFile = new InputStreamReader(ResourceManager.getResourcesFileStream(SERVER_FILE))) {
 				instance = gson.fromJson(serverFile, ServerManager.class);
+				instance.servers.get(0).setUUID(UUID.randomUUID());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
