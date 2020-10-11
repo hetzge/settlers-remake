@@ -34,6 +34,7 @@ import jsettlers.graphics.map.draw.ImageProvider;
 import jsettlers.main.swing.JSettlersSwingUtil;
 import jsettlers.main.swing.lookandfeel.ELFStyle;
 import jsettlers.main.swing.menu.joinpanel.IJoinGameConnector;
+import jsettlers.network.server.lobby.core.EPlayerState;
 import jsettlers.network.server.lobby.core.PlayerId;
 import jsettlers.network.server.lobby.core.PlayerType;
 
@@ -51,18 +52,19 @@ public class PlayerSlot {
 	private final IJoinGameConnector connector;
 	private final PlayerId playerId;
 	private boolean ready;
-	
+	private EPlayerState state;
+
 	private final JLabel playerNameLabel;
 	private final JComboBox<ECivilisation> civilisationComboBox;
 	private final JComboBox<PlayerType> typeComboBox;
-	private final JComboBox<Byte> slotComboBox;
-	private final JComboBox<Byte> teamComboBox;
+	private final JComboBox<Integer> slotComboBox;
+	private final JComboBox<Integer> teamComboBox;
 	private final JButton readyButton;
 
 	public PlayerSlot(IJoinGameConnector connector, PlayerId playerId, int totalSlots, PlayerType[] playerTypes) {
 		this.connector = connector;
 		this.playerId = playerId;
-		
+
 		// components
 		this.playerNameLabel = new JLabel();
 		this.civilisationComboBox = new JComboBox<>();
@@ -87,7 +89,7 @@ public class PlayerSlot {
 		for (ECivilisation civilisation : ECivilisation.values()) {
 			civilisationComboBox.addItem(civilisation);
 		}
-		for (byte i = 1; i < totalSlots + 1; i++) {
+		for (int i = 1; i < totalSlots + 1; i++) {
 			slotComboBox.addItem(i);
 			teamComboBox.addItem(i);
 		}
@@ -104,6 +106,8 @@ public class PlayerSlot {
 			this.onChange(event);
 		});
 		teamComboBox.addActionListener(this::onChange);
+
+		updatePlayerName();
 	}
 
 	public void addTo(JPanel panel, int row) {
@@ -145,22 +149,15 @@ public class PlayerSlot {
 
 	private void onChange(ActionEvent event) {
 		sendPlayerUpdate();
-		updateAiPlayerName();
+		updatePlayerName();
 	}
 
 	private void sendPlayerUpdate() {
 		connector.updatePlayer(playerId, getPlayerType(), getCivilisation(), getTeam(), isReady());
 	}
 
-	private void updateAiPlayerName() {
-		if (getPlayerType().isAi()) {
-			ECivilisation civilisation = getCivilisation();
-			if (civilisation != null) {
-				setPlayerName(Labels.getString("player-name-" + getCivilisation().name() + "-" + getPlayerType().name()));
-			} else {
-				setPlayerName(Labels.getString("player-name-random"));
-			}
-		}
+	public EPlayerState getState() {
+		return state;
 	}
 
 	public PlayerId getPlayerId() {
@@ -187,8 +184,26 @@ public class PlayerSlot {
 		return ready;
 	}
 
+	public void setState(EPlayerState state) {
+		this.state = state;
+	}
+
 	public void setPlayerName(String playerName) {
 		playerNameLabel.setText(playerName);
+		updatePlayerName();
+	}
+
+	private void updatePlayerName() {
+		if (getPlayerType().isEmpty()) {
+			playerNameLabel.setText("...");
+		} else if (getPlayerType().isAi()) {
+			ECivilisation civilisation = getCivilisation();
+			if (civilisation != null) {
+				playerNameLabel.setText(Labels.getString("player-name-" + getCivilisation().name() + "-" + getPlayerType().name()));
+			} else {
+				playerNameLabel.setText(Labels.getString("player-name-random"));
+			}
+		}
 	}
 
 	public void setTeam(int team) {
@@ -220,7 +235,7 @@ public class PlayerSlot {
 			if (civilisationComboBox.getItemAt(i) == civilisation) {
 				final int index = i;
 				set(civilisationComboBox, () -> civilisationComboBox.setSelectedIndex(index));
-				updateAiPlayerName();
+				updatePlayerName();
 				break;
 			}
 		}
@@ -231,7 +246,7 @@ public class PlayerSlot {
 			if (typeComboBox.getItemAt(i) == playerType) {
 				final int index = i;
 				set(typeComboBox, () -> typeComboBox.setSelectedIndex(index));
-				updateAiPlayerName();
+				updatePlayerName();
 				if (playerType.isAi()) {
 					setReady(true);
 				}
@@ -264,6 +279,9 @@ public class PlayerSlot {
 		return readyImage.getScaledInstance(READY_BUTTON_WIDTH, READY_BUTTON_HEIGHT, Image.SCALE_SMOOTH);
 	}
 
+	/**
+	 * Set without trigger action listener.
+	 */
 	private static void set(JComboBox<?> component, Runnable runnable) {
 		final ActionListener[] listeners = component.getActionListeners();
 		for (final ActionListener listener : listeners) {
@@ -272,8 +290,9 @@ public class PlayerSlot {
 		try {
 			runnable.run();
 		} finally {
-			for (final ActionListener listener : listeners)
+			for (final ActionListener listener : listeners) {
 				component.addActionListener(listener);
+			}
 		}
 	}
 

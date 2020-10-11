@@ -47,6 +47,7 @@ import jsettlers.main.swing.lookandfeel.ELFStyle;
 import jsettlers.main.swing.lookandfeel.GBC;
 import jsettlers.main.swing.lookandfeel.components.BackgroundPanel;
 import jsettlers.main.swing.menu.joinpanel.slots.PlayerSlot;
+import jsettlers.network.server.lobby.core.EPlayerState;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.PlayerType;
@@ -233,11 +234,12 @@ public class JoinGamePanel extends BackgroundPanel {
 
 	public void setupPlayer(Player player) {
 		final PlayerSlot playerSlot = playerSlots.stream().filter(slot -> slot.getPlayerId().equals(player.getId())).findFirst().get();
-		playerSlot.setPlayerName(player.getName());
 		playerSlot.setCivilisation(player.getCivilisation());
 		playerSlot.setPlayerType(player.getType());
 		playerSlot.setTeam((byte) player.getTeam());
 		playerSlot.setReady(player.isReady());
+		playerSlot.setState(player.getState());
+		playerSlot.setPlayerName(player.getName());
 	}
 
 	private void setPeaceTime(Duration peaceTime) {
@@ -270,10 +272,10 @@ public class JoinGamePanel extends BackgroundPanel {
 
 	private void buildPlayerSlots(Match match) {
 		playerSlots.clear();
-		Player[] players = match.getPlayers();
 
+		final List<Player> players = match.getPlayers();
 		for (Player player : players) {
-			playerSlots.add(new PlayerSlot(connector, player.getId(), players.length, new PlayerType[] {
+			playerSlots.add(new PlayerSlot(connector, player.getId(), players.size(), new PlayerType[] {
 					PlayerType.EMPTY,
 					PlayerType.NONE,
 					PlayerType.HUMAN,
@@ -292,10 +294,10 @@ public class JoinGamePanel extends BackgroundPanel {
 		System.out.println("JoinGamePanel.buildPlayerSlots(" + maxPlayers + ")");
 		playerSlots.clear();
 		PlayerSetting[] playerSettings = mapLoader.getFileHeader().getPlayerSettings();
-		for (byte i = 0; i < maxPlayers; i++) {
-			PlayerSlot playerSlot = this.connector.createPlayerSlot(i);
+		for (int i = 0; i < maxPlayers; i++) {
 			PlayerSetting playerSetting = playerSettings[i];
-			playerSlots.add(playerSlot);
+
+			PlayerSlot playerSlot = this.connector.createPlayerSlot(i);
 			playerSlot.setSlot(i);
 
 			if (playerSetting.getTeamId() != null) {
@@ -311,6 +313,8 @@ public class JoinGamePanel extends BackgroundPanel {
 			if (playerSetting.getPlayerType() != null) {
 				playerSlot.setPlayerType(PlayerType.from(playerSetting.getPlayerType()));
 			}
+
+			playerSlots.add(playerSlot);
 		}
 	}
 
@@ -378,5 +382,9 @@ public class JoinGamePanel extends BackgroundPanel {
 					}
 				})
 				.toArray(PlayerSetting[]::new);
+	}
+
+	public boolean haveAllPlayersStartFinished() {
+		return playerSlots.stream().map(PlayerSlot::getState).allMatch(EPlayerState.INGAME::equals);
 	}
 }

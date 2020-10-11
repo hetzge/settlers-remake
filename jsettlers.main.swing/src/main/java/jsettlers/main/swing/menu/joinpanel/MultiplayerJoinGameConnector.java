@@ -1,9 +1,8 @@
 package jsettlers.main.swing.menu.joinpanel;
 
-import java.util.Arrays;
-
 import javax.swing.SwingUtilities;
 
+import jsettlers.common.ai.EPlayerType;
 import jsettlers.common.player.ECivilisation;
 import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
@@ -82,10 +81,9 @@ public final class MultiplayerJoinGameConnector implements IJoinGameConnector {
 			});
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.MATCH_STARTED, MatchPacket.class, packet -> {
+			packet.getMatch().getPlayers().forEach(panel::setupPlayer);
 			final Player currentPlayer = packet.getMatch().getPlayer(this.client.getUserId().getPlayerId()).orElseThrow(() -> new IllegalStateException("Current player is not part of the match"));
-			final PlayerSetting[] playerSettings = Arrays.stream(packet.getMatch().getPlayers()).map(player -> {
-				return new PlayerSetting(player.getType().getPlayerType(), player.getCivilisation(), (byte) player.getTeam());
-			}).toArray(PlayerSetting[]::new);
+			final PlayerSetting[] playerSettings = toPlayerSettings(packet);
 			final MapLoader mapLoader = MapList.getDefaultList().getMapById(packet.getMatch().getLevelId().getValue());
 			final JSettlersGame game = new JSettlersGame(mapLoader, 0L, new GameNetworkConnector(this.client), (byte) currentPlayer.getPosition(), playerSettings);
 			this.settlersFrame.showStartingGamePanel(game.start());
@@ -140,6 +138,18 @@ public final class MultiplayerJoinGameConnector implements IJoinGameConnector {
 
 	private boolean isHost() {
 		return matchId == null;
+	}
+
+	private PlayerSetting[] toPlayerSettings(MatchPacket packet) {
+		return packet.getMatch().getPlayers().stream().map(player -> {
+			final EPlayerType playerType = player.getType().getPlayerType();
+			final ECivilisation civilisation = player.getCivilisation();
+			final byte team = (byte) player.getTeam();
+			if (playerType == null) {
+				throw new IllegalStateException(String.format("Failed to start match. Player %s without valid type.", player));
+			}
+			return new PlayerSetting(playerType, civilisation, team);
+		}).toArray(PlayerSetting[]::new);
 	}
 
 	private class OpenNewGameThread extends Thread {
@@ -199,8 +209,7 @@ public final class MultiplayerJoinGameConnector implements IJoinGameConnector {
 
 		@Override
 		public boolean haveAllPlayersStartFinished() {
-			// TODO
-			throw new UnsupportedOperationException();
+			return panel.haveAllPlayersStartFinished();
 		}
 	}
 }

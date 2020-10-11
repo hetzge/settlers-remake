@@ -20,15 +20,18 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.List;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
 import jsettlers.network.NetworkConstants;
+import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.TestUtils;
 import jsettlers.network.client.task.packets.SyncTasksPacket;
 import jsettlers.network.client.task.packets.TaskPacket;
 import jsettlers.network.infrastructure.channel.Channel;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
+import jsettlers.network.infrastructure.channel.GenericDeserializer;
+import jsettlers.network.infrastructure.channel.listeners.PacketChannelListener;
 
 /**
  * This class tests the {@link TaskPacketListener} implementation.
@@ -57,8 +60,12 @@ public class TaskPacketListenerTest {
 	@Test
 	public void testSendAndReceive() throws InterruptedException {
 		SyncTasksPacketSchedulerMock taskReceiver = new SyncTasksPacketSchedulerMock();
-		TaskPacketListener listener = new TaskPacketListener(taskReceiver);
-		c1.registerListener(listener);
+		c1.registerListener(new PacketChannelListener<SyncTasksPacket>(ENetworkKey.SYNCHRONOUS_TASK, new GenericDeserializer<>(SyncTasksPacket.class)) {
+			@Override
+			protected void receivePacket(ENetworkKey key, SyncTasksPacket packet) throws IOException {
+				taskReceiver.scheduleSyncTasksPacket(packet);
+			}
+		});
 
 		TaskPacket testPacket1 = new TestTaskPacket("tesdfk��l9u8u23jo", 23424, (byte) -2);
 		TaskPacket testPacket2 = new TestTaskPacket("?=?=O\"K�#'*'::�;;�", -2342342, (byte) -67);

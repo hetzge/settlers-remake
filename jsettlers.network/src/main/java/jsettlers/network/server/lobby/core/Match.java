@@ -1,6 +1,7 @@
 package jsettlers.network.server.lobby.core;
 
 import java.time.Duration;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
@@ -15,12 +16,12 @@ public final class Match {
 	private final MatchId id;
 	private final String name;
 	private final LevelId levelId;
-	private final Player[] players;
+	private final List<Player> players;
 	private ResourceAmount resourceAmount;
 	private Duration peaceTime;
 	private MatchState state;
 
-	public Match(MatchId id, String name, LevelId levelId, Player[] players, ResourceAmount resourceAmount, Duration peaceTime, MatchState state) {
+	public Match(MatchId id, String name, LevelId levelId, List<Player> players, ResourceAmount resourceAmount, Duration peaceTime, MatchState state) {
 		this.id = id;
 		this.name = name;
 		this.levelId = levelId;
@@ -41,21 +42,11 @@ public final class Match {
 	}
 
 	public Optional<Player> getPlayer(PlayerId playerId) {
-		for (int i = 0; i < players.length; i++) {
-			if (playerId.equals(players[i].getId())) {
-				return Optional.of(players[i]);
-			}
-		}
-		return Optional.empty();
+		return players.stream().filter(player -> player.getId().equals(playerId)).findFirst();
 	}
 
 	public Optional<Integer> findNextHumanPlayerPosition() {
-		for (int i = 0; i < players.length; i++) {
-			if (players[i].getType().canBeReplacedWithHuman()) {
-				return Optional.of(players[i].getPosition());
-			}
-		}
-		return Optional.empty();
+		return players.stream().filter(player -> player.getType().canBeReplacedWithHuman()).findFirst().map(Player::getPosition);
 	}
 
 	public boolean areAllPlayersReady() {
@@ -65,6 +56,10 @@ public final class Match {
 			}
 		}
 		return true;
+	}
+
+	public void setAiPlayersIngame() {
+		players.stream().filter(p -> p.getType().isAi()).forEach(p -> p.setState(EPlayerState.INGAME));
 	}
 
 	public MatchId getId() {
@@ -79,12 +74,12 @@ public final class Match {
 		return levelId;
 	}
 
-	public Player[] getPlayers() {
-		return Arrays.copyOf(players, players.length);
+	public List<Player> getPlayers() {
+		return new ArrayList<>(players);
 	}
 
 	public List<UserId> getUserIds() {
-		return Arrays.asList(players).stream().map(player -> player.getId().getUserId()).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
+		return players.stream().map(player -> player.getId().getUserId()).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
 	}
 
 	public ResourceAmount getResourceAmount() {
@@ -104,12 +99,12 @@ public final class Match {
 	}
 
 	public void setPlayerByPosition(Player newPlayer) {
-		players[newPlayer.getPosition()] = newPlayer;
+		players.set(newPlayer.getPosition(), newPlayer);
 	}
 
 	public void setPlayerById(Player newPlayer) {
 		getPlayer(newPlayer.getId()).ifPresent(player -> {
-			players[player.getPosition()] = newPlayer;
+			players.set(player.getPosition(), newPlayer);
 		});
 	}
 
@@ -144,6 +139,6 @@ public final class Match {
 
 	@Override
 	public String toString() {
-		return String.format("Match [id=%s, levelId=%s, players=%s, resourceAmount=%s, peaceTime=%s, state=%s]", id, levelId, Arrays.toString(players), resourceAmount, peaceTime, state);
+		return String.format("Match [id=%s, name=%s, levelId=%s, players=%s, resourceAmount=%s, peaceTime=%s, state=%s]", id, name, levelId, players, resourceAmount, peaceTime, state);
 	}
 }

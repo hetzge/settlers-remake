@@ -8,6 +8,8 @@ import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import jsettlers.common.player.ECivilisation;
 import jsettlers.network.NetworkConstants;
@@ -31,6 +33,7 @@ import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchArrayPacket;
 import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.lobby.network.PlayerPacket;
+import jsettlers.network.server.match.EMatchState;
 import jsettlers.network.server.match.lockstep.TaskCollectingListener;
 import jsettlers.network.server.match.lockstep.TaskSendingTimerTask;
 
@@ -39,10 +42,6 @@ public final class Lobby {
 	// TODO error handling
 	// TODO add database layer
 	// TODO synchronize
-	// TODO player package
-	// TODO ChatMessagePacket remove author ?!
-	// TODO link ENetworkKey with packet class
-	// TODO if (state == EMatchState.RUNNING || state == EMatchState.FINISHED) {
 	// TODO Left players
 
 	private final Map<UserId, User> userById;
@@ -80,10 +79,8 @@ public final class Lobby {
 	public MatchId createMatch(UserId userId, String matchName, LevelId levelId, int maxPlayers) {
 		System.out.println("Lobby.createMatch(" + userId + ", " + matchName + ", " + levelId + ", " + maxPlayers + ")");
 		final MatchId matchId = MatchId.generate();
-		final Player[] players = new Player[maxPlayers];
-		for (int i = 0; i < players.length; i++) {
-			players[i] = new Player(PlayerId.generate(), "Player-" + i, EPlayerState.UNKNOWN, ECivilisation.ROMAN, PlayerType.AI_HARD, i, i + 1, true);
-		}
+		final List<Player> players = IntStream.range(0, maxPlayers)
+				.mapToObj(i -> new Player(PlayerId.generate(), "Player-" + i, EPlayerState.UNKNOWN, ECivilisation.ROMAN, PlayerType.EMPTY, i, i + 1, false)).collect(Collectors.toList());
 		final Match match = new Match(matchId, matchName, levelId, players, ResourceAmount.HIGH, Duration.ZERO, MatchState.OPENED);
 		matchById.put(matchId, match);
 		sendMatchUpdate(ENetworkKey.UPDATE_MATCH, match);
@@ -95,13 +92,13 @@ public final class Lobby {
 		Optional.ofNullable(userById.get(userId)).ifPresent(user -> {
 			Optional.ofNullable(matchById.get(matchId)).ifPresent(match -> {
 				// Only join if not already in match
-				if (!match.contains(user.getId().getPlayerId())) {
+				if (!match.contains(userId.getPlayerId())) {
 					System.out.println("Lobby.joinMatch(" + userId + ", " + matchId + ")");
-					// Leave match first if user already contained
+					// Leave match if user is part of another match
 					leaveMatch(userId);
 					match.findNextHumanPlayerPosition().ifPresent(position -> {
 						// Add player to match
-						final Player existingPlayer = match.getPlayers()[position];
+						final Player existingPlayer = match.getPlayers().get(position);
 						match.setPlayerByPosition(new Player(userId.getPlayerId(), user.getUsername(), EPlayerState.UNKNOWN, existingPlayer.getCivilisation(), PlayerType.HUMAN, position,
 								existingPlayer.getTeam(), false));
 						sendMatchUpdate(ENetworkKey.UPDATE_MATCH, match);
@@ -150,13 +147,13 @@ public final class Lobby {
 
 	public void startMatch(UserId userId, Timer timer) {
 		System.out.println("Lobby.startMatch(" + userId + ")");
-		// if (state == EMatchState.RUNNING || state == EMatchState.FINISHED) {
-		// return; // match already started
-		// }
 		if (!getActiveMatch(userId).map(Match::areAllPlayersReady).orElse(false)) {
 			return;
 		}
 		getActiveMatch(userId).ifPresent(match -> {
+			if (match.getState() == MatchState.RUNNING) {
+				return; // match already started
+			}
 			final TaskCollectingListener taskCollectingListener = new TaskCollectingListener();
 			final TaskSendingTimerTask taskSendingTimerTask = new TaskSendingTimerTask(match.createLogger(), taskCollectingListener, packet -> {
 				sendMatchPacket(match, ENetworkKey.SYNCHRONOUS_TASK, packet);
@@ -179,6 +176,7 @@ public final class Lobby {
 
 			// Set match running
 			match.setState(MatchState.RUNNING);
+			match.setAiPlayersIngame();
 			sendMatchUpdate(ENetworkKey.MATCH_STARTED, match);
 		});
 	}
@@ -188,6 +186,7 @@ public final class Lobby {
 			existingMatch.getPlayer(userId.getPlayerId()).ifPresent(player -> {
 				if (value) {
 					player.setState(EPlayerState.INGAME);
+					sendPlayerUpdate(existingMatch, player);
 				}
 			});
 		});
@@ -207,17 +206,35 @@ public final class Lobby {
 		});
 	}
 
-	public void update(UserId userId, Player playerUpdate) {
+	public void update(UserId userId, Player updatePlayer) {
 		getActiveMatch(userId).ifPresent(existingMatch -> {
-			existingMatch.getPlayer(userId.getPlayerId()).ifPresent(player -> {
-				System.out.println("Lobby.update(" + userId + ", " + playerUpdate + ")");
-				if (playerUpdate.getId().equals(userId.getPlayerId()) || player.isHost()) {
-					existingMatch.getPlayer(playerUpdate.getId()).ifPresent(existingPlayer -> {
-						existingPlayer.setCivilisation(playerUpdate.getCivilisation());
-						existingPlayer.setType(playerUpdate.getType());
-						existingPlayer.setTeam(playerUpdate.getTeam());
-						existingPlayer.setReady(playerUpdate.isReady());
-						sendPlayerUpdate(existingMatch, existingPlayer);
+			existingMatch.getPlayer(userId.getPlayerId()).ifPresent(currentPlayer -> {
+				System.out.println("Lobby.update(" + userId + ", " + updatePlayer + ")");
+				if (updatePlayer.getId().equals(userId.getPlayerId()) || currentPlayer.isHost()) {
+					existingMatch.getPlayer(updatePlayer.getId()).ifPresent(player -> {
+
+						player.setCivilisation(updatePlayer.getCivilisation());
+						player.setTeam(updatePlayer.getTeam());
+
+						if (player.getType() != updatePlayer.getType() && updatePlayer.getType().isHuman()) {
+							player.setReady(false);
+						} else if (updatePlayer.getType() == PlayerType.EMPTY) {
+							player.setReady(false);
+						} else if (updatePlayer.getType() == PlayerType.NONE) {
+							player.setReady(true);
+						} else if (updatePlayer.getType().isAi()) {
+							player.setReady(true);
+						} else {
+							player.setReady(updatePlayer.isReady());
+						}
+
+						if (player.getType() != updatePlayer.getType() && updatePlayer.getType() == PlayerType.HUMAN) {
+							player.setType(PlayerType.EMPTY);
+						} else {
+							player.setType(updatePlayer.getType());
+						}
+
+						sendPlayerUpdate(existingMatch, player);
 					});
 				}
 			});

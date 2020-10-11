@@ -4,6 +4,8 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 
 import jsettlers.network.infrastructure.channel.packet.Packet;
@@ -29,9 +31,9 @@ public final class MatchPacket extends Packet {
 	@Override
 	public void serialize(DataOutputStream dos) throws IOException {
 		dos.writeUTF(match.getLevelId().getValue());
-		dos.writeInt(match.getPlayers().length);
-		for (int i = 0; i < match.getPlayers().length; i++) {
-			new PlayerPacket(match.getPlayers()[i]).serialize(dos);
+		dos.writeInt(match.getPlayers().size());
+		for (Player player : match.getPlayers()) {
+			new PlayerPacket(player).serialize(dos);
 		}
 		dos.writeUTF(match.getId().getValue());
 		dos.writeUTF(match.getName());
@@ -44,11 +46,11 @@ public final class MatchPacket extends Packet {
 	public void deserialize(DataInputStream dis) throws IOException {
 		final LevelId levelId = new LevelId(dis.readUTF());
 		final int playersLength = dis.readInt();
-		final Player[] players = new Player[playersLength];
+		final List<Player> players = new ArrayList<>(playersLength);
 		final PlayerPacket playerPacket = new PlayerPacket();
 		for (int i = 0; i < playersLength; i++) {
 			playerPacket.deserialize(dis);
-			players[i] = playerPacket.getPlayer();
+			players.add(playerPacket.getPlayer());
 		}
 		this.match = new Match(
 				new MatchId(dis.readUTF()),

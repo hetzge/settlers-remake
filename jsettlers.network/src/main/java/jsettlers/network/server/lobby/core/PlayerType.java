@@ -14,15 +14,19 @@ public enum PlayerType {
 	public static final PlayerType[] VALUES = values();
 
 	public boolean canBeReplacedWithHuman() {
-		return this != HUMAN && this != NONE;
+		return this == EMPTY;
 	}
 
 	public boolean isAi() {
-		return !isHuman() && this != NONE && this != EMPTY;
+		return !isHuman() && !isEmpty();
 	}
 
 	public boolean isHuman() {
 		return this == HUMAN;
+	}
+
+	public boolean isEmpty() {
+		return this == NONE || this == EMPTY;
 	}
 
 	public EPlayerType getPlayerType() {
