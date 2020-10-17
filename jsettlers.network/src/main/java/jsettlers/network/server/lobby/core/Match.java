@@ -3,6 +3,7 @@ package jsettlers.network.server.lobby.core;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -35,6 +36,10 @@ public final class Match {
 		setPeaceTime(match.peaceTime);
 		setResourceAmount(match.resourceAmount);
 		setState(match.state);
+	}
+
+	public Match withoutPlayers() {
+		return new Match(id, name, levelId, Collections.emptyList(), resourceAmount, peaceTime, state);
 	}
 
 	public boolean contains(PlayerId playerId) {

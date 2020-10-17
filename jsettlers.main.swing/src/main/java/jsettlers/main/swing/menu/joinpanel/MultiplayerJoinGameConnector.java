@@ -24,6 +24,7 @@ import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.MapInfoPacket;
 import jsettlers.network.infrastructure.channel.listeners.SimpleListener;
 import jsettlers.network.server.lobby.core.EPlayerState;
+import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.PlayerId;
 import jsettlers.network.server.lobby.core.PlayerType;
@@ -68,16 +69,19 @@ public final class MultiplayerJoinGameConnector implements IJoinGameConnector {
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_MATCH, MatchPacket.class, packet -> {
 			SwingUtilities.invokeLater(() -> {
-				this.panel.appendChat(packet.getMatch().toString());
-				this.panel.setupMatch(packet.getMatch());
+				final Match match = packet.getMatch();
+				this.panel.appendChat(match.toString());
+				this.panel.setupMatch(match);
+				// Check if player is kicked from match
+				if (!match.getUserIds().contains(client.getUserId())) {
+					cancel();
+				}
 			});
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER, PlayerPacket.class, packet -> {
 			SwingUtilities.invokeLater(() -> {
 				this.panel.appendChat(packet.getPlayer().toString());
 				this.panel.setupPlayer(packet.getPlayer());
-
-				// TODO set player state
 			});
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.MATCH_STARTED, MatchPacket.class, packet -> {

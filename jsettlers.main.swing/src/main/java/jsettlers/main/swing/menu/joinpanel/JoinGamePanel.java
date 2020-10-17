@@ -222,13 +222,17 @@ public class JoinGamePanel extends BackgroundPanel {
 		numberOfPlayersComboBox.setEnabled(isHost);
 		peaceTimeTextField.setEnabled(isHost);
 		startResourcesComboBox.setEnabled(isHost);
-		startGameButton.setVisible(true);
+		startGameButton.setVisible(isHost);
 	}
 
 	public void setupMatch(Match match) {
+		final List<Player> players = match.getPlayers();
 		setPeaceTime(match.getPeaceTime());
 		setStartResourceAmount(match.getResourceAmount());
-		buildPlayerSlots(match);
+		// players can be empty if they should not be updated
+		if (!players.isEmpty()) {
+			buildPlayerSlots(players);
+		}
 		updateNumberOfPlayerSlots();
 	}
 
@@ -270,10 +274,9 @@ public class JoinGamePanel extends BackgroundPanel {
 		updateNumberOfPlayerSlots();
 	}
 
-	private void buildPlayerSlots(Match match) {
+	private void buildPlayerSlots(List<Player> players) {
 		playerSlots.clear();
 
-		final List<Player> players = match.getPlayers();
 		for (Player player : players) {
 			playerSlots.add(new PlayerSlot(connector, player.getId(), players.size(), new PlayerType[] {
 					PlayerType.EMPTY,

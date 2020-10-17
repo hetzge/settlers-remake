@@ -156,7 +156,8 @@ public final class NetworkConstants {
 		UPDATE_TEAM,
 		UPDATE_PLAYER_TYPE,
 		UPDATE_READY,
-		UPDATE_PLAYER;
+		UPDATE_PLAYER,
+		KICK_USER;
 
 		private static final ENetworkKey[] values = ENetworkKey.values();
 		private final byte ordinal;

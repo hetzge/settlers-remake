@@ -19,6 +19,7 @@ import java.util.Collection;
 import java.util.Scanner;
 
 import jsettlers.network.server.lobby.Lobby;
+import jsettlers.network.server.lobby.LobbyDb;
 import jsettlers.network.server.lobby.core.Match;
 
 /**
@@ -30,7 +31,8 @@ import jsettlers.network.server.lobby.core.Match;
 public class DedicatedServerApp {
 
 	public static void main(String args[]) throws IOException {
-		Lobby lobby = new Lobby();
+		LobbyDb db = new LobbyDb();
+		Lobby lobby = new Lobby(db);
 		GameServerThread gameServer = new GameServerThread(false, lobby);
 		gameServer.start();
 
@@ -41,7 +43,7 @@ public class DedicatedServerApp {
 				System.out.println("shutting down...");
 				break;
 			} else if ("listMatches".equalsIgnoreCase(line)) {
-				Collection<Match> matches = lobby.getMatches();
+				Collection<Match> matches = db.getMatches();
 				System.out.println("listing matches (" + matches.size() + "):");
 				for (Match match : matches) {
 					System.out.println("\t" + match);
