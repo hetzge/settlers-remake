@@ -78,7 +78,7 @@ public class SwingManagedJSettlers {
 	private static void loadCommandLineSettings() {
 		CommonConstants.CONTROL_ALL = SettingsManager.getInstance().isControllAll();
 		CommonConstants.ACTIVATE_ALL_PLAYERS = SettingsManager.getInstance().isActivateAllPlayers();
-		CommonConstants.ENABLE_CONSOLE_LOGGING = true;
+		CommonConstants.ENABLE_CONSOLE_LOGGING = SettingsManager.getInstance().useConsoleOutput();;
 		CommonConstants.DISABLE_ORIGINAL_MAPS = SettingsManager.getInstance().areOriginalMapsDisabled();
 		AbstractLabels.setPreferredLocale(SettingsManager.getInstance().getLocale());
 	}

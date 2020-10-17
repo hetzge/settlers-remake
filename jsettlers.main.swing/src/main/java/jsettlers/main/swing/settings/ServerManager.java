@@ -52,7 +52,6 @@ public class ServerManager {
 		if(instance == null) {
 			try(Reader serverFile = new InputStreamReader(ResourceManager.getResourcesFileStream(SERVER_FILE))) {
 				instance = gson.fromJson(serverFile, ServerManager.class);
-				instance.servers.get(0).setUUID(UUID.randomUUID());
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
