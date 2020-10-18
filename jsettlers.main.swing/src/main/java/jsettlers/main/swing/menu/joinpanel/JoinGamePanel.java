@@ -50,7 +50,6 @@ import jsettlers.main.swing.JSettlersSwingUtil;
 import jsettlers.main.swing.lookandfeel.ELFStyle;
 import jsettlers.main.swing.lookandfeel.GBC;
 import jsettlers.main.swing.lookandfeel.components.BackgroundPanel;
-import jsettlers.main.swing.menu.joinpanel.slots.PlayerSlot;
 import jsettlers.network.server.lobby.core.EPlayerState;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.Player;
@@ -205,6 +204,8 @@ public class JoinGamePanel extends BackgroundPanel {
 
 	private void addListener() {
 		numberOfPlayersComboBox.addActionListener(e -> updateNumberOfPlayerSlots());
+		startResourcesComboBox.addActionListener(e -> connector.updateMatch(getPeaceTime(), getStartResourceAmount()));
+		peaceTimeTextField.addActionListener(e -> connector.updateMatch(getPeaceTime(), getStartResourceAmount()));
 		ActionListener sendChatMessageListener = e -> {
 			connector.sendChatMessage(chatInputField.getText());
 			chatInputField.setText("");
@@ -260,11 +261,19 @@ public class JoinGamePanel extends BackgroundPanel {
 	}
 
 	private void setPeaceTime(Duration peaceTime) {
-		peaceTimeTextField.setText(String.valueOf(peaceTime.toMinutes()));
+		SwingUtils.set(peaceTimeTextField, () -> peaceTimeTextField.setText(String.valueOf(peaceTime.toMinutes())));
+	}
+
+	private Duration getPeaceTime() {
+		return Duration.ofMinutes(Long.valueOf(peaceTimeTextField.getText()));
 	}
 
 	private void setStartResourceAmount(ResourceAmount amount) {
-		startResourcesComboBox.setSelectedIndex(amount.ordinal());
+		SwingUtils.set(startResourcesComboBox, () -> startResourcesComboBox.setSelectedIndex(amount.ordinal()));
+	}
+
+	private ResourceAmount getStartResourceAmount() {
+		return ResourceAmount.VALUES[startResourcesComboBox.getSelectedIndex()];
 	}
 
 	public void appendChat(String message) {

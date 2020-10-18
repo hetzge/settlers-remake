@@ -38,6 +38,7 @@ import jsettlers.main.swing.menu.openpanel.OpenPanel;
 import jsettlers.main.swing.settings.ServerEntry;
 import jsettlers.network.client.IClientConnection;
 import jsettlers.network.client.interfaces.INetworkClient;
+import jsettlers.network.server.lobby.core.MatchId;
 
 public class ServerConnectionPanel extends JPanel {
 
@@ -125,7 +126,7 @@ public class ServerConnectionPanel extends JPanel {
 			settlersFrame.showJoinMultiplayerMenu(
 					networkClient,
 					MapList.getDefaultList().getMapById(networkGameMapLoader.getMapId()),
-					networkGameMapLoader.getJoinableGame().getId());
+					new MatchId(networkGameMapLoader.getJoinableGame().getId()));
 		});
 	}
 }

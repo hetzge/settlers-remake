@@ -24,6 +24,8 @@ import jsettlers.network.common.packets.MatchStartPacket;
 import jsettlers.network.common.packets.PlayerInfoPacket;
 import jsettlers.network.infrastructure.channel.IChannelListener;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
+import jsettlers.network.server.lobby.core.Match;
+import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchArrayPacket;
@@ -100,9 +102,11 @@ public interface INetworkClient {
 
 	void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo);
 
-	void joinMatch(String matchId);
+	void joinMatch(MatchId matchId);
 
 	void updatePlayer(Player player);
+
+	void updateMatch(Match match);
 
 	IGameClock getGameClock();
 

@@ -1,5 +1,7 @@
 package jsettlers.main.swing.menu.joinpanel;
 
+import java.time.Duration;
+
 import javax.swing.SwingUtilities;
 
 import jsettlers.common.menu.IStartingGame;
@@ -9,9 +11,9 @@ import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
 import jsettlers.main.swing.JSettlersFrame;
-import jsettlers.main.swing.menu.joinpanel.slots.PlayerSlot;
 import jsettlers.main.swing.settings.SettingsManager;
 import jsettlers.network.server.lobby.core.PlayerType;
+import jsettlers.network.server.lobby.core.ResourceAmount;
 
 public final class SingleplayerJoinGameConnector implements IJoinGameConnector {
 
@@ -55,11 +57,7 @@ public final class SingleplayerJoinGameConnector implements IJoinGameConnector {
 	public PlayerSlot createPlayerSlot(int index) {
 		final PlayerType[] playerTypes = index == 0
 				? new PlayerType[] {
-						PlayerType.HUMAN,
-						PlayerType.AI_VERY_HARD,
-						PlayerType.AI_HARD,
-						PlayerType.AI_EASY,
-						PlayerType.AI_VERY_EASY }
+						PlayerType.HUMAN }
 				: new PlayerType[] {
 						PlayerType.AI_VERY_HARD,
 						PlayerType.AI_HARD,
@@ -76,6 +74,10 @@ public final class SingleplayerJoinGameConnector implements IJoinGameConnector {
 
 	@Override
 	public void updatePlayer(int index, PlayerType playerType, ECivilisation civilisation, int team, boolean ready) {
+	}
+
+	@Override
+	public void updateMatch(Duration peaceTime, ResourceAmount startResources) {
 	}
 
 	@Override

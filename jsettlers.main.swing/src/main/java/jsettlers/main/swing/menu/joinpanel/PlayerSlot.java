@@ -12,13 +12,12 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *******************************************************************************/
-package jsettlers.main.swing.menu.joinpanel.slots;
+package jsettlers.main.swing.menu.joinpanel;
 
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.Image;
 import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
 
 import javax.swing.ImageIcon;
@@ -26,7 +25,6 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
-import javax.swing.JTextField;
 
 import jsettlers.common.player.ECivilisation;
 import jsettlers.graphics.image.SingleImage;
@@ -34,7 +32,6 @@ import jsettlers.graphics.localization.Labels;
 import jsettlers.graphics.map.draw.ImageProvider;
 import jsettlers.main.swing.JSettlersSwingUtil;
 import jsettlers.main.swing.lookandfeel.ELFStyle;
-import jsettlers.main.swing.menu.joinpanel.IJoinGameConnector;
 import jsettlers.network.server.lobby.core.EPlayerState;
 import jsettlers.network.server.lobby.core.PlayerType;
 
@@ -201,7 +198,7 @@ public class PlayerSlot {
 		if (team == 0) {
 			throw new IllegalArgumentException("Team can not be less then 1");
 		}
-		set(teamComboBox, () -> teamComboBox.setSelectedIndex(team - 1));
+		SwingUtils.set(teamComboBox, () -> teamComboBox.setSelectedIndex(team - 1));
 	}
 
 	public void setReady(boolean ready) {
@@ -221,7 +218,7 @@ public class PlayerSlot {
 		for (int i = 0; i < civilisationComboBox.getItemCount(); i++) {
 			if (civilisationComboBox.getItemAt(i) == civilisation) {
 				final int index = i;
-				set(civilisationComboBox, () -> civilisationComboBox.setSelectedIndex(index));
+				SwingUtils.set(civilisationComboBox, () -> civilisationComboBox.setSelectedIndex(index));
 				updatePlayerName();
 				break;
 			}
@@ -232,7 +229,7 @@ public class PlayerSlot {
 		for (int i = 0; i < typeComboBox.getItemCount(); i++) {
 			if (typeComboBox.getItemAt(i) == playerType) {
 				final int index = i;
-				set(typeComboBox, () -> typeComboBox.setSelectedIndex(index));
+				SwingUtils.set(typeComboBox, () -> typeComboBox.setSelectedIndex(index));
 				updatePlayerName();
 				if (playerType.isAi()) {
 					setReady(true);
@@ -270,22 +267,4 @@ public class PlayerSlot {
 		}
 		return readyImage.getScaledInstance(READY_BUTTON_WIDTH, READY_BUTTON_HEIGHT, Image.SCALE_SMOOTH);
 	}
-
-	/**
-	 * Set without trigger action listener.
-	 */
-	private static void set(JComboBox<?> component, Runnable runnable) {
-		final ActionListener[] listeners = component.getActionListeners();
-		for (final ActionListener listener : listeners) {
-			component.removeActionListener(listener);
-		}
-		try {
-			runnable.run();
-		} finally {
-			for (final ActionListener listener : listeners) {
-				component.addActionListener(listener);
-			}
-		}
-	}
-
 }

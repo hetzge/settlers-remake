@@ -1,6 +1,9 @@
 package jsettlers.main.swing.menu.joinpanel;
 
+import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 
 import javax.swing.SwingUtilities;
 
@@ -12,7 +15,6 @@ import jsettlers.logic.map.loading.list.MapList;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
 import jsettlers.main.swing.JSettlersFrame;
-import jsettlers.main.swing.menu.joinpanel.slots.PlayerSlot;
 import jsettlers.main.swing.settings.SettingsManager;
 import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.client.NetworkClient;
@@ -27,9 +29,13 @@ import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.MapInfoPacket;
 import jsettlers.network.infrastructure.channel.listeners.SimpleListener;
 import jsettlers.network.server.lobby.core.EPlayerState;
+import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.Match;
+import jsettlers.network.server.lobby.core.MatchId;
+import jsettlers.network.server.lobby.core.MatchState;
 import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.PlayerType;
+import jsettlers.network.server.lobby.core.ResourceAmount;
 import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.lobby.network.PlayerPacket;
 
@@ -38,10 +44,10 @@ public final class MultiplayerJoinGameConnector implements IJoinGameConnector {
 	private final JSettlersFrame settlersFrame;
 	private final INetworkClient client;
 	private final MapLoader mapLoader;
-	private final String matchId;
+	private final MatchId matchId;
 	private final JoinGamePanel panel;
 
-	public MultiplayerJoinGameConnector(JSettlersFrame settlersFrame, INetworkClient client, MapLoader mapLoader, String matchId) {
+	public MultiplayerJoinGameConnector(JSettlersFrame settlersFrame, INetworkClient client, MapLoader mapLoader, MatchId matchId) {
 		this.settlersFrame = settlersFrame;
 		this.client = client;
 		this.mapLoader = mapLoader;
@@ -54,7 +60,7 @@ public final class MultiplayerJoinGameConnector implements IJoinGameConnector {
 		if (isHost()) {
 			new OpenNewGameThread().start();
 		} else {
-			new JoinGameThread(matchId).start();
+			new JoinGameThread().start();
 		}
 		// Setup ui
 		SwingUtilities.invokeLater(() -> {
@@ -140,6 +146,12 @@ public final class MultiplayerJoinGameConnector implements IJoinGameConnector {
 	}
 
 	@Override
+	public void updateMatch(Duration peaceTime, ResourceAmount startResources) {
+		System.out.println("MultiplayerJoinGameConnector.updateMatch(" + matchId + ")");
+		this.client.updateMatch(new Match(matchId, "", new LevelId(mapLoader.getMapId()), Collections.emptyList(), startResources, peaceTime, MatchState.OPENED));
+	}
+
+	@Override
 	public void sendChatMessage(String message) {
 		this.client.sendChatMessage(this.client.getUserId(), message);
 	}
@@ -174,11 +186,8 @@ public final class MultiplayerJoinGameConnector implements IJoinGameConnector {
 	}
 
 	private class JoinGameThread extends Thread {
-		private final String matchId;
-
-		public JoinGameThread(String matchId) {
+		public JoinGameThread() {
 			super("JoinGame");
-			this.matchId = matchId;
 		}
 
 		@Override

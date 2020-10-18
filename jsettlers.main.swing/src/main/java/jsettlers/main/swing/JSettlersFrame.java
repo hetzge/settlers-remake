@@ -47,6 +47,7 @@ import jsettlers.main.swing.menu.startinggamemenu.StartingGamePanel;
 import jsettlers.main.swing.menu.statspanel.EndgameStatsPanel;
 import jsettlers.main.swing.settings.SettingsManager;
 import jsettlers.network.client.interfaces.INetworkClient;
+import jsettlers.network.server.lobby.core.MatchId;
 
 /**
  * @author codingberlin
@@ -181,7 +182,7 @@ public class JSettlersFrame extends JFrame {
 		setNewContentPane(new MultiplayerJoinGameConnector(this, client, mapLoader, null).setup());
 	}
 
-	public void showJoinMultiplayerMenu(INetworkClient client, MapLoader mapLoader, String matchId) {
+	public void showJoinMultiplayerMenu(INetworkClient client, MapLoader mapLoader, MatchId matchId) {
 		setNewContentPane(new MultiplayerJoinGameConnector(this, client, mapLoader, matchId).setup());
 	}
 

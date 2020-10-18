@@ -41,9 +41,12 @@ import jsettlers.network.infrastructure.channel.IChannelListener;
 import jsettlers.network.infrastructure.channel.packet.EmptyPacket;
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
+import jsettlers.network.server.lobby.core.Match;
+import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchArrayPacket;
+import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.lobby.network.PlayerPacket;
 import jsettlers.network.synchronic.timer.NetworkTimer;
 
@@ -190,8 +193,8 @@ public class NetworkClient implements ITaskScheduler, INetworkClient {
 	}
 
 	@Override
-	public void joinMatch(String matchId) {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.REQUEST_JOIN_MATCH, new IdPacket(matchId));
+	public void joinMatch(MatchId matchId) {
+		channel.sendPacketAsync(NetworkConstants.ENetworkKey.REQUEST_JOIN_MATCH, new IdPacket(matchId.getValue()));
 	}
 
 	@Override
@@ -207,5 +210,10 @@ public class NetworkClient implements ITaskScheduler, INetworkClient {
 	@Override
 	public void updatePlayer(Player player) {
 		channel.sendPacket(ENetworkKey.UPDATE_PLAYER, new PlayerPacket(player));
+	}
+
+	@Override
+	public void updateMatch(Match match) {
+		channel.sendPacket(ENetworkKey.UPDATE_MATCH, new MatchPacket(match));
 	}
 }
