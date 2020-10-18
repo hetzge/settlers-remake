@@ -23,6 +23,8 @@ import java.awt.event.ActionListener;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.swing.BorderFactory;
 import javax.swing.ImageIcon;
@@ -38,6 +40,8 @@ import javax.swing.SwingUtilities;
 import javax.swing.border.EmptyBorder;
 
 import java8.util.J8Arrays;
+import java8.util.Optional;
+import jsettlers.common.player.ECivilisation;
 import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.EMapStartResources;
 import jsettlers.logic.map.loading.MapLoader;
@@ -91,7 +95,6 @@ public class JoinGamePanel extends BackgroundPanel {
 	private final JLabel slotsHeadlinePlayerNameLabel = new JLabel();
 	private final JLabel slotsHeadlineCivilisation = new JLabel();
 	private final JLabel slotsHeadlineType = new JLabel();
-	private final JLabel slotsHeadlineMapSlot = new JLabel();
 	private final JLabel slotsHeadlineTeam = new JLabel();
 	private final JTextField chatInputField = new JTextField();
 	private final JTextArea chatArea = new JTextArea();
@@ -176,7 +179,6 @@ public class JoinGamePanel extends BackgroundPanel {
 		slotsHeadlinePlayerNameLabel.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_DYNAMIC);
 		slotsHeadlineCivilisation.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_DYNAMIC);
 		slotsHeadlineType.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_DYNAMIC);
-		slotsHeadlineMapSlot.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_DYNAMIC);
 		slotsHeadlineTeam.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_DYNAMIC);
 		sendChatMessageButton.putClientProperty(ELFStyle.KEY, ELFStyle.BUTTON_MENU);
 		chatInputField.putClientProperty(ELFStyle.KEY, ELFStyle.TEXT_DEFAULT);
@@ -197,7 +199,6 @@ public class JoinGamePanel extends BackgroundPanel {
 		slotsHeadlinePlayerNameLabel.setText(Labels.getString("join-game-panel-player-name"));
 		slotsHeadlineCivilisation.setText(Labels.getString("join-game-panel-civilisation"));
 		slotsHeadlineType.setText(Labels.getString("join-game-panel-player-type"));
-		slotsHeadlineMapSlot.setText(Labels.getString("join-game-panel-map-slot"));
 		slotsHeadlineTeam.setText(Labels.getString("join-game-panel-team"));
 		sendChatMessageButton.setText(Labels.getString("join-game-panel-send-chat-message"));
 	}
@@ -216,6 +217,18 @@ public class JoinGamePanel extends BackgroundPanel {
 
 	public void setTitle(String title) {
 		this.titleLabel.setText(title);
+	}
+
+	public void setupCurrentPlayer(Player player) {
+		for (PlayerSlot playerSlot : playerSlots) {
+			if (player.isHost()) {
+				playerSlot.enable();
+			} else if (playerSlot.getIndex() == player.getIndex()) {
+				playerSlot.enableLite();
+			} else {
+				playerSlot.disable();
+			}
+		}
 	}
 
 	public void setupHost(boolean isHost) {
@@ -237,7 +250,7 @@ public class JoinGamePanel extends BackgroundPanel {
 	}
 
 	public void setupPlayer(Player player) {
-		final PlayerSlot playerSlot = playerSlots.stream().filter(slot -> slot.getPlayerId().equals(player.getId())).findFirst().get();
+		final PlayerSlot playerSlot = playerSlots.get(player.getIndex());
 		playerSlot.setCivilisation(player.getCivilisation());
 		playerSlot.setPlayerType(player.getType());
 		playerSlot.setTeam((byte) player.getTeam());
@@ -274,50 +287,25 @@ public class JoinGamePanel extends BackgroundPanel {
 		updateNumberOfPlayerSlots();
 	}
 
+	private void buildPlayerSlots(MapLoader mapLoader) {
+		final PlayerSetting[] playerSettings = mapLoader.getFileHeader().getPlayerSettings();
+		final List<Player> players = IntStream.range(0, mapLoader.getMaxPlayers()).mapToObj(i -> {
+			final ECivilisation civilisation = Optional.ofNullable(playerSettings[i].getCivilisation()).orElse(ECivilisation.ROMAN);
+			final PlayerType playerType = Optional.ofNullable(playerSettings[i].getPlayerType()).map(PlayerType::from).orElse(PlayerType.AI_EASY);
+			final int team = Optional.ofNullable(playerSettings[i].getTeamId()).map(it -> (int) it).orElse(i + 1);
+			return new Player(i, "Player-" + i, null, EPlayerState.UNKNOWN, civilisation, playerType, team, false);
+		}).collect(Collectors.toList());
+		buildPlayerSlots(players);
+	}
+
 	private void buildPlayerSlots(List<Player> players) {
 		playerSlots.clear();
 
 		for (Player player : players) {
-			playerSlots.add(new PlayerSlot(connector, player.getId(), players.size(), new PlayerType[] {
-					PlayerType.EMPTY,
-					PlayerType.NONE,
-					PlayerType.HUMAN,
-					PlayerType.AI_VERY_HARD,
-					PlayerType.AI_HARD,
-					PlayerType.AI_EASY,
-					PlayerType.AI_VERY_EASY }));
+			playerSlots.add(connector.createPlayerSlot(player.getIndex()));
 		}
 		for (Player player : players) {
 			setupPlayer(player);
-		}
-	}
-
-	private void buildPlayerSlots(MapLoader mapLoader) {
-		int maxPlayers = mapLoader.getMaxPlayers();
-		System.out.println("JoinGamePanel.buildPlayerSlots(" + maxPlayers + ")");
-		playerSlots.clear();
-		PlayerSetting[] playerSettings = mapLoader.getFileHeader().getPlayerSettings();
-		for (int i = 0; i < maxPlayers; i++) {
-			PlayerSetting playerSetting = playerSettings[i];
-
-			PlayerSlot playerSlot = this.connector.createPlayerSlot(i);
-			playerSlot.setSlot(i);
-
-			if (playerSetting.getTeamId() != null) {
-				playerSlot.setTeam(playerSetting.getTeamId());
-			} else {
-				playerSlot.setTeam(i + 1);
-			}
-
-			if (playerSetting.getCivilisation() != null) {
-				playerSlot.setCivilisation(playerSetting.getCivilisation());
-			}
-
-			if (playerSetting.getPlayerType() != null) {
-				playerSlot.setPlayerType(PlayerType.from(playerSetting.getPlayerType()));
-			}
-
-			playerSlots.add(playerSlot);
 		}
 	}
 
@@ -343,30 +331,22 @@ public class JoinGamePanel extends BackgroundPanel {
 
 	private void addPlayerSlotHeadline() {
 		GridBagConstraints constraints = new GridBagConstraints();
-		constraints.gridx = 1;
+		constraints.gridx = constraints.gridx + constraints.gridwidth + 1;
 		constraints.gridy = 0;
 		constraints.gridwidth = 4;
 		constraints.fill = GridBagConstraints.HORIZONTAL;
 		playerSlotsPanel.add(slotsHeadlinePlayerNameLabel, constraints);
-		constraints.gridx = 5;
+		constraints.gridx = constraints.gridx + constraints.gridwidth;
 		constraints.gridy = 0;
 		constraints.gridwidth = 2;
 		constraints.fill = GridBagConstraints.HORIZONTAL;
 		playerSlotsPanel.add(slotsHeadlineCivilisation, constraints);
-		constraints = new GridBagConstraints();
-		constraints.gridx = 7;
+		constraints.gridx = constraints.gridx + constraints.gridwidth;
 		constraints.gridy = 0;
 		constraints.gridwidth = 4;
 		constraints.fill = GridBagConstraints.HORIZONTAL;
 		playerSlotsPanel.add(slotsHeadlineType, constraints);
-		constraints = new GridBagConstraints();
-		constraints.gridx = 11;
-		constraints.gridy = 0;
-		constraints.gridwidth = 1;
-		constraints.fill = GridBagConstraints.HORIZONTAL;
-		playerSlotsPanel.add(slotsHeadlineMapSlot, constraints);
-		constraints = new GridBagConstraints();
-		constraints.gridx = 12;
+		constraints.gridx = constraints.gridx + constraints.gridwidth;
 		constraints.gridy = 0;
 		constraints.gridwidth = 1;
 		constraints.fill = GridBagConstraints.HORIZONTAL;
@@ -375,7 +355,6 @@ public class JoinGamePanel extends BackgroundPanel {
 
 	public PlayerSetting[] getPlayerSettings() {
 		return playerSlots.stream()
-				.sorted((playerSlot, otherPlayerSlot) -> playerSlot.getSlot() - otherPlayerSlot.getSlot())
 				.map(playerSlot -> {
 					PlayerType playerType = playerSlot.getPlayerType();
 					if (playerType.getPlayerType() != null) {

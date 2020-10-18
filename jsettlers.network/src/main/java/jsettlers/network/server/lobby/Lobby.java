@@ -1,7 +1,6 @@
 package jsettlers.network.server.lobby;
 
 import java.time.Duration;
-import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -14,6 +13,7 @@ import java.util.stream.IntStream;
 import jsettlers.common.player.ECivilisation;
 import jsettlers.network.NetworkConstants;
 import jsettlers.network.NetworkConstants.ENetworkKey;
+import jsettlers.network.common.packets.BooleanMessagePacket;
 import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.TimeSyncPacket;
 import jsettlers.network.infrastructure.channel.Channel;
@@ -25,7 +25,6 @@ import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.MatchState;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.PlayerId;
 import jsettlers.network.server.lobby.core.PlayerType;
 import jsettlers.network.server.lobby.core.ResourceAmount;
 import jsettlers.network.server.lobby.core.User;
@@ -33,16 +32,13 @@ import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchArrayPacket;
 import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.lobby.network.PlayerPacket;
-import jsettlers.network.server.match.EMatchState;
 import jsettlers.network.server.match.lockstep.TaskCollectingListener;
 import jsettlers.network.server.match.lockstep.TaskSendingTimerTask;
 
 public final class Lobby {
 
 	// TODO error handling
-	// TODO add database layer
 	// TODO synchronize
-	// TODO Left players
 
 	private final LobbyDb db;
 	private final Map<MatchId, TaskSendingTimerTask> timerTaskByMatchId;
@@ -76,7 +72,7 @@ public final class Lobby {
 		System.out.println("Lobby.createMatch(" + userId + ", " + matchName + ", " + levelId + ", " + maxPlayers + ")");
 		final MatchId matchId = MatchId.generate();
 		final List<Player> players = IntStream.range(0, maxPlayers)
-				.mapToObj(i -> new Player(PlayerId.generate(), "Player-" + i, EPlayerState.UNKNOWN, ECivilisation.ROMAN, PlayerType.EMPTY, i, i + 1, false)).collect(Collectors.toList());
+				.mapToObj(i -> new Player(i, "Player-" + i, null, EPlayerState.UNKNOWN, ECivilisation.ROMAN, PlayerType.EMPTY, i + 1, false)).collect(Collectors.toList());
 		final Match match = new Match(matchId, matchName, levelId, players, ResourceAmount.HIGH, Duration.ZERO, MatchState.OPENED);
 		db.setMatch(match);
 		joinMatch(userId, matchId);
@@ -87,17 +83,18 @@ public final class Lobby {
 		final User user = db.getUser(userId);
 		final Match match = db.getMatch(matchId);
 		// Only join if not already in match
-		if (!match.contains(userId.getPlayerId())) {
+		if (!match.contains(userId)) {
 			System.out.println("Lobby.joinMatch(" + userId + ", " + matchId + ")");
 			// Leave match if user is part of another match
 			leaveMatch(userId);
-			match.findNextHumanPlayerPosition().ifPresent(position -> {
-				// Add player to match
-				final Player existingPlayer = match.getPlayers().get(position);
-				match.setPlayerByPosition(new Player(userId.getPlayerId(), user.getUsername(), EPlayerState.UNKNOWN, existingPlayer.getCivilisation(), PlayerType.HUMAN, position,
-						existingPlayer.getTeam(), false));
-				sendMatchUpdate(ENetworkKey.UPDATE_MATCH, match);
-			});
+			// Setup player with user
+			final Player player = match.findNextHumanPlayer().orElseThrow(() -> new LobbyException("Failed to join match. No empty slot found."));
+			player.setUserId(userId);
+			player.setName(user.getUsername());
+			player.setType(PlayerType.HUMAN);
+			player.setReady(false);
+			player.setState(EPlayerState.UNKNOWN);
+			sendMatchUpdate(ENetworkKey.UPDATE_MATCH, match);
 			// Set logger
 			user.getChannel().setLogger(match.createLogger());
 		}
@@ -109,13 +106,16 @@ public final class Lobby {
 		}
 		final Match match = db.getActiveMatch(userId);
 		System.out.println("Lobby.leaveMatch(" + userId + ")");
-		final PlayerId playerId = userId.getPlayerId();
-		match.getPlayer(playerId).ifPresent(existingPlayer -> {
-			if (!existingPlayer.isHost()) {
-				// Replace with empty player
-				match.setPlayerByPosition(new Player(PlayerId.generate(), "---", EPlayerState.UNKNOWN, existingPlayer.getCivilisation(), PlayerType.EMPTY, existingPlayer.getPosition(),
-						existingPlayer.getTeam(), false));
-				sendMatchUpdate(ENetworkKey.UPDATE_MATCH, match);
+		sendKickUser(userId);
+		match.getPlayer(userId).ifPresent(player -> {
+			if (!player.isHost()) {
+				// Update player properties to empty player
+				player.setName("---");
+				player.setType(PlayerType.EMPTY);
+				player.setReady(false);
+				player.setUserId(null);
+				player.setState(EPlayerState.UNKNOWN);
+				sendPlayerUpdate(match, player);
 			} else {
 				// Cancel and remove the timer task
 				Optional.ofNullable(timerTaskByMatchId.get(match.getId())).ifPresent(TimerTask::cancel);
@@ -174,7 +174,7 @@ public final class Lobby {
 
 	public void setStartFinished(UserId userId, boolean value) {
 		final Match match = db.getActiveMatch(userId);
-		match.getPlayer(userId.getPlayerId()).ifPresent(player -> {
+		match.getPlayer(userId).ifPresent(player -> {
 			if (value) {
 				player.setState(EPlayerState.INGAME);
 				sendPlayerUpdate(match, player);
@@ -184,7 +184,7 @@ public final class Lobby {
 
 	public void update(UserId userId, Match matchUpdate) {
 		final Match existingMatch = db.getMatch(matchUpdate.getId());
-		existingMatch.getPlayer(userId.getPlayerId()).ifPresent(player -> {
+		existingMatch.getPlayer(userId).ifPresent(player -> {
 			if (player.isHost()) {
 				existingMatch.update(matchUpdate);
 			}
@@ -196,23 +196,18 @@ public final class Lobby {
 		final Match existingMatch = db.getActiveMatch(userId);
 		final Player currentPlayer = db.getPlayer(userId);
 		System.out.println("Lobby.update(" + userId + ", " + updatePlayer + ")");
-		if (updatePlayer.getId().equals(userId.getPlayerId()) || currentPlayer.isHost()) {
-			final Player player = db.getPlayer(userId, updatePlayer.getId());
+		if (currentPlayer.getIndex() == updatePlayer.getIndex() || currentPlayer.isHost()) {
+			final Player player = db.getActiveMatch(userId).getPlayer(updatePlayer.getIndex());
 
 			player.setCivilisation(updatePlayer.getCivilisation());
 			player.setTeam(updatePlayer.getTeam());
 
-			final Optional<UserId> playerUserIdOptional = player.getId().getUserId();
 			if (player.getType() != updatePlayer.getType() && updatePlayer.getType().isHuman()) {
 				player.setReady(false);
 			} else if (updatePlayer.getType() == PlayerType.EMPTY) {
 				player.setReady(false);
-				// user leaves match if set to NONE
-				playerUserIdOptional.ifPresent(this::leaveMatch);
 			} else if (updatePlayer.getType() == PlayerType.NONE) {
 				player.setReady(true);
-				// user leaves match if set to NONE
-				playerUserIdOptional.ifPresent(this::leaveMatch);
 			} else if (updatePlayer.getType().isAi()) {
 				player.setReady(true);
 			} else {
@@ -223,6 +218,11 @@ public final class Lobby {
 				player.setType(PlayerType.EMPTY);
 			} else {
 				player.setType(updatePlayer.getType());
+			}
+
+			if (!player.getType().isHuman()) {
+				// user leaves match if set to non human
+				player.getUserId().ifPresent(this::leaveMatch);
 			}
 
 			sendPlayerUpdate(existingMatch, player);
@@ -271,6 +271,10 @@ public final class Lobby {
 		final Match match = db.getActiveMatch(userId);
 		sendMatchPacket(match, NetworkConstants.ENetworkKey.TIME_SYNC, packet);
 		timerTaskByMatchId.get(match.getId()).receivedLockstepAcknowledge(packet.getTime() / NetworkConstants.Client.LOCKSTEP_PERIOD);
+	}
+
+	private void sendKickUser(UserId userId) {
+		db.getUser(userId).getChannel().sendPacket(ENetworkKey.KICK_USER, new BooleanMessagePacket(true));
 	}
 
 	private void sendMatchPacket(Match match, ENetworkKey networkKey, Packet packet) {

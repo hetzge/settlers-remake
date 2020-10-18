@@ -1,27 +1,28 @@
 package jsettlers.network.server.lobby.core;
 
 import java.util.Objects;
+import java.util.Optional;
 
 import jsettlers.common.player.ECivilisation;
 
 public final class Player {
 
-	private final PlayerId id;
-	private final String name;
+	private final int index;
+	private String name;
+	private UserId userId;
 	private EPlayerState state;
 	private ECivilisation civilisation;
 	private PlayerType type;
-	private int position;
 	private int team;
 	private boolean ready;
 
-	public Player(PlayerId id, String name, EPlayerState state, ECivilisation civilisation, PlayerType type, int position, int team, boolean ready) {
-		this.id = id;
+	public Player(int index, String name, UserId userId, EPlayerState state, ECivilisation civilisation, PlayerType type, int team, boolean ready) {
+		this.index = index;
 		this.name = name;
+		this.userId = userId;
 		this.state = state;
 		this.civilisation = civilisation;
 		this.type = type;
-		this.position = position;
 		this.team = team;
 		this.ready = ready;
 	}
@@ -29,21 +30,28 @@ public final class Player {
 	public void set(Player player) {
 		setCivilisation(player.civilisation);
 		setType(player.type);
-		setPosition(player.position);
 		setReady(player.ready);
 		setTeam(player.team);
 	}
 
 	public boolean isHost() {
-		return position == 0;
+		return index == 0;
+	}
+	
+	public boolean isUser(UserId userId) {
+		return getUserId().filter(userId::equals).isPresent();
 	}
 
-	public PlayerId getId() {
-		return id;
+	public int getIndex() {
+		return index;
 	}
 
 	public String getName() {
 		return name;
+	}
+
+	public Optional<UserId> getUserId() {
+		return Optional.ofNullable(userId);
 	}
 
 	public EPlayerState getState() {
@@ -58,16 +66,20 @@ public final class Player {
 		return type;
 	}
 
-	public int getPosition() {
-		return position;
-	}
-
 	public int getTeam() {
 		return team;
 	}
 
 	public boolean isReady() {
 		return ready;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public void setUserId(UserId userId) {
+		this.userId = userId;
 	}
 
 	public void setCivilisation(ECivilisation civilisation) {
@@ -82,10 +94,6 @@ public final class Player {
 		this.type = type;
 	}
 
-	public void setPosition(int position) {
-		this.position = position;
-	}
-
 	public void setTeam(int team) {
 		this.team = team;
 	}
@@ -96,7 +104,7 @@ public final class Player {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(id);
+		return Objects.hash(index);
 	}
 
 	@Override
@@ -108,11 +116,11 @@ public final class Player {
 			return false;
 		}
 		Player other = (Player) obj;
-		return Objects.equals(id, other.id);
+		return index == other.index;
 	}
 
 	@Override
 	public String toString() {
-		return String.format("Player [id=%s, name=%s, state=%s, civilisation=%s, type=%s, position=%s, team=%s, ready=%s]", id, name, state, civilisation, type, position, team, ready);
+		return String.format("Player [index=%s, name=%s, userId=%s, state=%s, civilisation=%s, type=%s, team=%s, ready=%s]", index, name, userId, state, civilisation, type, team, ready);
 	}
 }

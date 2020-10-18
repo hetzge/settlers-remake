@@ -1,5 +1,7 @@
 package jsettlers.main.swing.menu.joinpanel;
 
+import java.util.List;
+
 import javax.swing.SwingUtilities;
 
 import jsettlers.common.ai.EPlayerType;
@@ -20,13 +22,13 @@ import jsettlers.network.client.interfaces.INetworkConnector;
 import jsettlers.network.client.interfaces.ITaskScheduler;
 import jsettlers.network.client.task.ISyncTasksPacketScheduler;
 import jsettlers.network.client.task.packets.SyncTasksPacket;
+import jsettlers.network.common.packets.BooleanMessagePacket;
 import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.MapInfoPacket;
 import jsettlers.network.infrastructure.channel.listeners.SimpleListener;
 import jsettlers.network.server.lobby.core.EPlayerState;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.PlayerId;
 import jsettlers.network.server.lobby.core.PlayerType;
 import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.lobby.network.PlayerPacket;
@@ -72,24 +74,34 @@ public final class MultiplayerJoinGameConnector implements IJoinGameConnector {
 				final Match match = packet.getMatch();
 				this.panel.appendChat(match.toString());
 				this.panel.setupMatch(match);
-				// Check if player is kicked from match
-				if (!match.getUserIds().contains(client.getUserId())) {
-					cancel();
+				for (Player player : match.getPlayers()) {
+					if (player.isUser(client.getUserId())) {
+						this.panel.setupCurrentPlayer(player);
+					}
 				}
 			});
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER, PlayerPacket.class, packet -> {
 			SwingUtilities.invokeLater(() -> {
-				this.panel.appendChat(packet.getPlayer().toString());
-				this.panel.setupPlayer(packet.getPlayer());
+				final Player player = packet.getPlayer();
+				this.panel.appendChat(player.toString());
+				this.panel.setupPlayer(player);
+				if (player.isUser(client.getUserId())) {
+					this.panel.setupCurrentPlayer(player);
+				}
+			});
+		}));
+		this.client.registerListener(new SimpleListener<>(ENetworkKey.KICK_USER, BooleanMessagePacket.class, packet -> {
+			SwingUtilities.invokeLater(() -> {
+				cancel();
 			});
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.MATCH_STARTED, MatchPacket.class, packet -> {
 			packet.getMatch().getPlayers().forEach(panel::setupPlayer);
-			final Player currentPlayer = packet.getMatch().getPlayer(this.client.getUserId().getPlayerId()).orElseThrow(() -> new IllegalStateException("Current player is not part of the match"));
+			final Player currentPlayer = packet.getMatch().getPlayer(this.client.getUserId()).orElseThrow(() -> new IllegalStateException("Current player is not part of the match"));
 			final PlayerSetting[] playerSettings = toPlayerSettings(packet);
 			final MapLoader mapLoader = MapList.getDefaultList().getMapById(packet.getMatch().getLevelId().getValue());
-			final JSettlersGame game = new JSettlersGame(mapLoader, 0L, new GameNetworkConnector(this.client), (byte) currentPlayer.getPosition(), playerSettings);
+			final JSettlersGame game = new JSettlersGame(mapLoader, 0L, new GameNetworkConnector(this.client), (byte) currentPlayer.getIndex(), playerSettings);
 			this.settlersFrame.showStartingGamePanel(game.start());
 			this.client.startGameSynchronization();
 		}));
@@ -103,7 +115,6 @@ public final class MultiplayerJoinGameConnector implements IJoinGameConnector {
 				this.panel.appendChat(Labels.getString("network-message-" + packet.getRejectedKey().name()));
 			});
 		});
-		// TODO player left / kicked
 		return this.panel;
 	}
 
@@ -119,20 +130,13 @@ public final class MultiplayerJoinGameConnector implements IJoinGameConnector {
 	}
 
 	@Override
-	public PlayerSlot createPlayerSlot(int slot) {
-		return new PlayerSlot(this, PlayerId.generate(), mapLoader.getMaxPlayers(), new PlayerType[] {
-				PlayerType.EMPTY,
-				PlayerType.NONE,
-				PlayerType.HUMAN,
-				PlayerType.AI_VERY_HARD,
-				PlayerType.AI_HARD,
-				PlayerType.AI_EASY,
-				PlayerType.AI_VERY_EASY });
+	public PlayerSlot createPlayerSlot(int index) {
+		return new PlayerSlot(this, index, mapLoader.getMaxPlayers(), PlayerType.VALUES);
 	}
 
 	@Override
-	public void updatePlayer(PlayerId playerId, PlayerType playerType, ECivilisation civilisation, int team, boolean ready) {
-		this.client.updatePlayer(new Player(playerId, "", EPlayerState.UNKNOWN, civilisation, playerType, 0, team, ready));
+	public void updatePlayer(int index, PlayerType playerType, ECivilisation civilisation, int team, boolean ready) {
+		this.client.updatePlayer(new Player(index, "", null, EPlayerState.UNKNOWN, civilisation, playerType, team, ready));
 	}
 
 	@Override

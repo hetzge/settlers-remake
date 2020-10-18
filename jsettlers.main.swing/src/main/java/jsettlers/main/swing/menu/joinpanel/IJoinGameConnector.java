@@ -2,7 +2,6 @@ package jsettlers.main.swing.menu.joinpanel;
 
 import jsettlers.common.player.ECivilisation;
 import jsettlers.main.swing.menu.joinpanel.slots.PlayerSlot;
-import jsettlers.network.server.lobby.core.PlayerId;
 import jsettlers.network.server.lobby.core.PlayerType;
 
 public interface IJoinGameConnector {
@@ -13,9 +12,9 @@ public interface IJoinGameConnector {
 
 	void start();
 
-	PlayerSlot createPlayerSlot(int slot);
+	PlayerSlot createPlayerSlot(int index);
 
-	void updatePlayer(PlayerId playerId, PlayerType playerType, ECivilisation civilisation, int team, boolean ready);
+	void updatePlayer(int index, PlayerType playerType, ECivilisation civilisation, int team, boolean ready);
 
 	void sendChatMessage(String message);
 }

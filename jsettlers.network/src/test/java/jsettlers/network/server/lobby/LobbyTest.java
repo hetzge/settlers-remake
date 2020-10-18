@@ -15,7 +15,6 @@ import org.junit.Test;
 import jsettlers.common.player.ECivilisation;
 import jsettlers.network.TestUtils;
 import jsettlers.network.infrastructure.channel.Channel;
-import jsettlers.network.server.lobby.LobbyDb.LobbyDbException;
 import jsettlers.network.server.lobby.core.EPlayerState;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.Match;
@@ -71,7 +70,7 @@ public class LobbyTest {
 		lobby.joinLobby(userA);
 
 		// should left match when rejoin
-		assertThrows(LobbyDbException.class, () -> db.getActiveMatch(userA.getId()));
+		assertThrows(LobbyException.class, () -> db.getActiveMatch(userA.getId()));
 	}
 
 	@Test
@@ -95,20 +94,20 @@ public class LobbyTest {
 		final MatchId matchId = lobby.createMatch(userA.getId(), MATCH_NAME, LEVEL_ID, 4);
 		lobby.joinMatch(userA.getId(), matchId);
 		lobby.joinMatch(userB.getId(), matchId);
-		assertEquals(userA.getId().getPlayerId(), db.getMatches().iterator().next().getPlayers().get(0).getId());
-		assertEquals(userB.getId().getPlayerId(), db.getMatches().iterator().next().getPlayers().get(1).getId());
+		assertEquals(userA.getId(), db.getMatches().iterator().next().getPlayers().get(0).getUserId().get());
+		assertEquals(userB.getId(), db.getMatches().iterator().next().getPlayers().get(1).getUserId().get());
 	}
 
 	@Test
 	public void test_create_match_without_join_lobby() {
-		assertThrows(LobbyDbException.class, () -> lobby.createMatch(userA.getId(), MATCH_NAME, LEVEL_ID, 4));
+		assertThrows(LobbyException.class, () -> lobby.createMatch(userA.getId(), MATCH_NAME, LEVEL_ID, 4));
 	}
 
 	@Test
 	public void test_join_match_without_join_lobby() {
 		lobby.joinLobby(userA);
 		final MatchId matchId = lobby.createMatch(userA.getId(), MATCH_NAME, LEVEL_ID, 4);
-		assertThrows(LobbyDbException.class, () -> lobby.joinMatch(userB.getId(), matchId));
+		assertThrows(LobbyException.class, () -> lobby.joinMatch(userB.getId(), matchId));
 	}
 
 	@Test
@@ -118,8 +117,8 @@ public class LobbyTest {
 		lobby.joinLobby(userB);
 		lobby.joinMatch(userB.getId(), matchId);
 		lobby.joinMatch(userB.getId(), matchId);
-		assertEquals(userB.getId().getPlayerId(), db.getActiveMatch(userA.getId()).getPlayers().get(1).getId());
-		assertNotEquals(userB.getId().getPlayerId(), db.getActiveMatch(userA.getId()).getPlayers().get(2).getId());
+		assertEquals(userB.getId(), db.getActiveMatch(userA.getId()).getPlayers().get(1).getUserId().get());
+		assertFalse(db.getActiveMatch(userA.getId()).getPlayers().get(2).getUserId().isPresent());
 	}
 
 	@Test
@@ -163,11 +162,11 @@ public class LobbyTest {
 		lobby.joinLobby(userA);
 		final Match match = db.getMatch(lobby.createMatch(userA.getId(), MATCH_NAME, LEVEL_ID, 2));
 		final Player otherPlayer = match.getPlayers().get(1);
-		lobby.update(userA.getId(), new Player(otherPlayer.getId(), "Other", EPlayerState.UNKNOWN, ECivilisation.EGYPTIAN, PlayerType.HUMAN, 0, 2, true));
+		lobby.update(userA.getId(), new Player(otherPlayer.getIndex(), "Other", null, EPlayerState.UNKNOWN, ECivilisation.EGYPTIAN, PlayerType.HUMAN, 2, true));
 		assertNotEquals("Username should not be updateable", "Other", otherPlayer.getName());
 		assertEquals(ECivilisation.EGYPTIAN, otherPlayer.getCivilisation());
 		assertEquals("Human players only can join a game. If a player is set to human then it should be set to empty player", PlayerType.EMPTY, otherPlayer.getType());
-		assertEquals(1, otherPlayer.getPosition());
+		assertEquals(1, otherPlayer.getIndex());
 		assertEquals(2, otherPlayer.getTeam());
 		assertEquals(false, otherPlayer.isReady());
 	}

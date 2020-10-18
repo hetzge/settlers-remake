@@ -26,6 +26,7 @@ import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JTextField;
 
 import jsettlers.common.player.ECivilisation;
 import jsettlers.graphics.image.SingleImage;
@@ -35,7 +36,6 @@ import jsettlers.main.swing.JSettlersSwingUtil;
 import jsettlers.main.swing.lookandfeel.ELFStyle;
 import jsettlers.main.swing.menu.joinpanel.IJoinGameConnector;
 import jsettlers.network.server.lobby.core.EPlayerState;
-import jsettlers.network.server.lobby.core.PlayerId;
 import jsettlers.network.server.lobby.core.PlayerType;
 
 public class PlayerSlot {
@@ -50,27 +50,27 @@ public class PlayerSlot {
 	public static final ImageIcon NOT_READY_DISABLED_IMAGE = new ImageIcon(getReadyButtonImage(2, 18, 0, false));
 
 	private final IJoinGameConnector connector;
-	private final PlayerId playerId;
+	private final int index;
 	private boolean ready;
 	private EPlayerState state;
 
+	private final JLabel indexLabel;
 	private final JLabel playerNameLabel;
 	private final JComboBox<ECivilisation> civilisationComboBox;
 	private final JComboBox<PlayerType> typeComboBox;
-	private final JComboBox<Integer> slotComboBox;
 	private final JComboBox<Integer> teamComboBox;
 	private final JButton readyButton;
 
-	public PlayerSlot(IJoinGameConnector connector, PlayerId playerId, int totalSlots, PlayerType[] playerTypes) {
+	public PlayerSlot(IJoinGameConnector connector, int index, int totalSlots, PlayerType[] playerTypes) {
 		this.connector = connector;
-		this.playerId = playerId;
+		this.index = index;
 
 		// components
+		this.indexLabel = new JLabel(String.valueOf(index + 1));
 		this.playerNameLabel = new JLabel();
 		this.civilisationComboBox = new JComboBox<>();
 		this.typeComboBox = new JComboBox<>();
 		this.typeComboBox.removeAll();
-		this.slotComboBox = new JComboBox<>();
 		this.teamComboBox = new JComboBox<>();
 		this.readyButton = new JButton();
 
@@ -81,7 +81,7 @@ public class PlayerSlot {
 		readyButton.setMinimumSize(new Dimension(READY_BUTTON_WIDTH, READY_BUTTON_HEIGHT));
 		playerNameLabel.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_DYNAMIC);
 		teamComboBox.putClientProperty(ELFStyle.KEY, ELFStyle.COMBOBOX);
-		slotComboBox.putClientProperty(ELFStyle.KEY, ELFStyle.COMBOBOX);
+		indexLabel.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_DYNAMIC);
 		typeComboBox.putClientProperty(ELFStyle.KEY, ELFStyle.COMBOBOX);
 		civilisationComboBox.putClientProperty(ELFStyle.KEY, ELFStyle.COMBOBOX);
 
@@ -90,7 +90,6 @@ public class PlayerSlot {
 			civilisationComboBox.addItem(civilisation);
 		}
 		for (int i = 1; i < totalSlots + 1; i++) {
-			slotComboBox.addItem(i);
 			teamComboBox.addItem(i);
 		}
 		for (PlayerType playerType : playerTypes) {
@@ -100,7 +99,6 @@ public class PlayerSlot {
 		// listener
 		typeComboBox.addActionListener(this::onChange);
 		civilisationComboBox.addActionListener(this::onChange);
-		slotComboBox.addActionListener(this::onChange);
 		readyButton.addActionListener(event -> {
 			setReady(!isReady());
 			this.onChange(event);
@@ -112,39 +110,36 @@ public class PlayerSlot {
 
 	public void addTo(JPanel panel, int row) {
 		GridBagConstraints constraints = new GridBagConstraints();
-		constraints.gridx = 0;
+		constraints.gridx = constraints.gridx + constraints.gridwidth;
 		constraints.gridy = row + 1;
 		constraints.gridwidth = 1;
 		constraints.fill = GridBagConstraints.HORIZONTAL;
-		panel.add(readyButton, constraints);
-		constraints.gridx = 1;
+		panel.add(indexLabel, constraints);
+		constraints.gridx = constraints.gridx + constraints.gridwidth;
 		constraints.gridy = row + 1;
 		constraints.gridwidth = 4;
 		constraints.fill = GridBagConstraints.HORIZONTAL;
 		panel.add(playerNameLabel, constraints);
-		constraints.gridx = 5;
+		constraints.gridx = constraints.gridx + constraints.gridwidth;
 		constraints.gridy = row + 1;
 		constraints.gridwidth = 2;
 		constraints.fill = GridBagConstraints.HORIZONTAL;
 		panel.add(civilisationComboBox, constraints);
-		constraints = new GridBagConstraints();
-		constraints.gridx = 7;
+		constraints.gridx = constraints.gridx + constraints.gridwidth;
 		constraints.gridy = row + 1;
 		constraints.gridwidth = 4;
 		constraints.fill = GridBagConstraints.HORIZONTAL;
 		panel.add(typeComboBox, constraints);
-		constraints = new GridBagConstraints();
-		constraints.gridx = 11;
-		constraints.gridy = row + 1;
-		constraints.gridwidth = 1;
-		constraints.fill = GridBagConstraints.HORIZONTAL;
-		panel.add(slotComboBox, constraints);
-		constraints = new GridBagConstraints();
-		constraints.gridx = 12;
+		constraints.gridx = constraints.gridx + constraints.gridwidth;
 		constraints.gridy = row + 1;
 		constraints.gridwidth = 1;
 		constraints.fill = GridBagConstraints.HORIZONTAL;
 		panel.add(teamComboBox, constraints);
+		constraints.gridx = constraints.gridx + constraints.gridwidth;
+		constraints.gridy = row + 1;
+		constraints.gridwidth = 1;
+		constraints.fill = GridBagConstraints.HORIZONTAL;
+		panel.add(readyButton, constraints);
 	}
 
 	private void onChange(ActionEvent event) {
@@ -153,19 +148,15 @@ public class PlayerSlot {
 	}
 
 	private void sendPlayerUpdate() {
-		connector.updatePlayer(playerId, getPlayerType(), getCivilisation(), getTeam(), isReady());
+		connector.updatePlayer(index, getPlayerType(), getCivilisation(), getTeam(), isReady());
 	}
 
 	public EPlayerState getState() {
 		return state;
 	}
 
-	public PlayerId getPlayerId() {
-		return playerId;
-	}
-
-	public int getSlot() {
-		return slotComboBox.getSelectedIndex();
+	public int getIndex() {
+		return index;
 	}
 
 	public int getTeam() {
@@ -213,10 +204,6 @@ public class PlayerSlot {
 		set(teamComboBox, () -> teamComboBox.setSelectedIndex(team - 1));
 	}
 
-	public void setSlot(int slot) {
-		set(slotComboBox, () -> slotComboBox.setSelectedIndex(slot));
-	}
-
 	public void setReady(boolean ready) {
 		this.ready = ready;
 		if (ready) {
@@ -256,15 +243,20 @@ public class PlayerSlot {
 	}
 
 	public void enable() {
-		slotComboBox.setEnabled(true);
 		civilisationComboBox.setEnabled(true);
 		teamComboBox.setEnabled(true);
 		typeComboBox.setEnabled(true);
 		readyButton.setEnabled(true);
 	}
 
+	public void enableLite() {
+		civilisationComboBox.setEnabled(true);
+		teamComboBox.setEnabled(true);
+		typeComboBox.setEnabled(false);
+		readyButton.setEnabled(true);
+	}
+
 	public void disable() {
-		slotComboBox.setEnabled(false);
 		civilisationComboBox.setEnabled(false);
 		teamComboBox.setEnabled(false);
 		typeComboBox.setEnabled(false);

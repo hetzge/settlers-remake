@@ -9,8 +9,8 @@ import jsettlers.common.player.ECivilisation;
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.server.lobby.core.EPlayerState;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.PlayerId;
 import jsettlers.network.server.lobby.core.PlayerType;
+import jsettlers.network.server.lobby.core.UserId;
 
 public class PlayerPacket extends Packet {
 
@@ -26,12 +26,13 @@ public class PlayerPacket extends Packet {
 
 	@Override
 	public void serialize(DataOutputStream dos) throws IOException {
-		dos.writeUTF(player.getId().getValue());
+		dos.writeInt(player.getIndex());
 		dos.writeUTF(player.getName());
+		dos.writeBoolean(player.getUserId().isPresent());
+		dos.writeUTF(player.getUserId().map(UserId::getValue).orElse(""));
 		dos.writeInt(player.getState().ordinal());
 		dos.writeInt(player.getCivilisation().ordinal());
 		dos.writeInt(player.getType().ordinal());
-		dos.writeInt(player.getPosition());
 		dos.writeInt(player.getTeam());
 		dos.writeBoolean(player.isReady());
 	}
@@ -39,14 +40,20 @@ public class PlayerPacket extends Packet {
 	@Override
 	public void deserialize(DataInputStream dis) throws IOException {
 		this.player = new Player(
-				new PlayerId(dis.readUTF()),
+				dis.readInt(),
 				dis.readUTF(),
+				deserializeUserId(dis),
 				EPlayerState.VALUES[dis.readInt()],
 				ECivilisation.VALUES[dis.readInt()],
 				PlayerType.VALUES[dis.readInt()],
 				dis.readInt(),
-				dis.readInt(),
 				dis.readBoolean());
+	}
+
+	private UserId deserializeUserId(DataInputStream dis) throws IOException {
+		final boolean hasUserId = dis.readBoolean();
+		final String userIdValue = dis.readUTF();
+		return hasUserId ? new UserId(userIdValue) : null;
 	}
 
 	public Player getPlayer() {

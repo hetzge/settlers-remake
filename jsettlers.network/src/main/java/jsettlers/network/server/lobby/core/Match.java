@@ -42,16 +42,20 @@ public final class Match {
 		return new Match(id, name, levelId, Collections.emptyList(), resourceAmount, peaceTime, state);
 	}
 
-	public boolean contains(PlayerId playerId) {
-		return getPlayer(playerId).isPresent();
+	public boolean contains(UserId userId) {
+		return getPlayer(userId).isPresent();
 	}
 
-	public Optional<Player> getPlayer(PlayerId playerId) {
-		return players.stream().filter(player -> player.getId().equals(playerId)).findFirst();
+	public Player getPlayer(int index) {
+		return players.get(index);
 	}
 
-	public Optional<Integer> findNextHumanPlayerPosition() {
-		return players.stream().filter(player -> player.getType().canBeReplacedWithHuman()).findFirst().map(Player::getPosition);
+	public Optional<Player> getPlayer(UserId userId) {
+		return this.players.stream().filter(player -> player.getUserId().map(userId::equals).orElse(false)).findFirst();
+	}
+
+	public Optional<Player> findNextHumanPlayer() {
+		return players.stream().filter(player -> player.getType().canBeReplacedWithHuman()).findFirst();
 	}
 
 	public boolean areAllPlayersReady() {
@@ -84,7 +88,7 @@ public final class Match {
 	}
 
 	public List<UserId> getUserIds() {
-		return players.stream().map(player -> player.getId().getUserId()).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
+		return players.stream().map(Player::getUserId).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
 	}
 
 	public ResourceAmount getResourceAmount() {
@@ -104,13 +108,7 @@ public final class Match {
 	}
 
 	public void setPlayerByPosition(Player newPlayer) {
-		players.set(newPlayer.getPosition(), newPlayer);
-	}
-
-	public void setPlayerById(Player newPlayer) {
-		getPlayer(newPlayer.getId()).ifPresent(player -> {
-			players.set(player.getPosition(), newPlayer);
-		});
+		players.set(newPlayer.getIndex(), newPlayer);
 	}
 
 	public void setResourceAmount(ResourceAmount resourceAmount) {

@@ -8,7 +8,6 @@ import java8.util.Optional;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.PlayerId;
 import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
 
@@ -26,7 +25,7 @@ public final class LobbyDb {
 	}
 
 	public User getUser(UserId userId) {
-		return Optional.ofNullable(userById.get(userId)).orElseThrow(() -> new LobbyDbException("User not found"));
+		return Optional.ofNullable(userById.get(userId)).orElseThrow(() -> new LobbyException("User not found"));
 	}
 
 	public Collection<User> getUsers() {
@@ -46,7 +45,7 @@ public final class LobbyDb {
 	}
 
 	public Match getMatch(MatchId matchId) {
-		return Optional.ofNullable(matchById.get(matchId)).orElseThrow(() -> new LobbyDbException("Match not found"));
+		return Optional.ofNullable(matchById.get(matchId)).orElseThrow(() -> new LobbyException("Match not found"));
 	}
 
 	public void removeMatch(MatchId matchId) {
@@ -54,23 +53,11 @@ public final class LobbyDb {
 	}
 
 	public boolean hasActiveMatch(UserId userId) {
-		final PlayerId playerId = userId.getPlayerId();
-		for (Match match : matchById.values()) {
-			if (match.contains(playerId)) {
-				return true;
-			}
-		}
-		return false;
+		return matchById.values().stream().anyMatch(match -> match.contains(userId));
 	}
 
 	public Match getActiveMatch(UserId userId) {
-		final PlayerId playerId = userId.getPlayerId();
-		for (Match match : matchById.values()) {
-			if (match.contains(playerId)) {
-				return match;
-			}
-		}
-		throw new LobbyDbException("No active match for user found");
+		return matchById.values().stream().filter(match -> match.contains(userId)).findFirst().orElseThrow(() -> new LobbyException("No active match for user found"));
 	}
 
 	public Collection<Match> getMatches() {
@@ -78,24 +65,6 @@ public final class LobbyDb {
 	}
 
 	public Player getPlayer(UserId userId) {
-		return getActiveMatch(userId).getPlayer(userId.getPlayerId()).orElseThrow(() -> new LobbyDbException("Player not found"));
-	}
-
-	public Player getPlayer(UserId currentUserId, PlayerId playerId) {
-		return getActiveMatch(currentUserId).getPlayer(playerId).orElseThrow(() -> new LobbyDbException("Player not found"));
-	}
-
-	public static class LobbyDbException extends RuntimeException {
-		public LobbyDbException(String message, Throwable cause) {
-			super(message, cause);
-		}
-
-		public LobbyDbException(String message) {
-			super(message);
-		}
-
-		public LobbyDbException(Throwable cause) {
-			super(cause);
-		}
+		return getActiveMatch(userId).getPlayer(userId).orElseThrow(() -> new LobbyException("Player not found"));
 	}
 }

@@ -10,10 +10,6 @@ public final class UserId {
 		this.value = value;
 	}
 
-	public PlayerId getPlayerId() {
-		return new PlayerId(this);
-	}
-
 	public String getValue() {
 		return value;
 	}

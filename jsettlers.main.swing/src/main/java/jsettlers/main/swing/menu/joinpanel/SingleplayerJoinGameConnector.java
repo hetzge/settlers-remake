@@ -11,7 +11,6 @@ import jsettlers.main.JSettlersGame;
 import jsettlers.main.swing.JSettlersFrame;
 import jsettlers.main.swing.menu.joinpanel.slots.PlayerSlot;
 import jsettlers.main.swing.settings.SettingsManager;
-import jsettlers.network.server.lobby.core.PlayerId;
 import jsettlers.network.server.lobby.core.PlayerType;
 
 public final class SingleplayerJoinGameConnector implements IJoinGameConnector {
@@ -53,8 +52,8 @@ public final class SingleplayerJoinGameConnector implements IJoinGameConnector {
 	}
 
 	@Override
-	public PlayerSlot createPlayerSlot(int slot) {
-		final PlayerType[] playerTypes = slot == 0
+	public PlayerSlot createPlayerSlot(int index) {
+		final PlayerType[] playerTypes = index == 0
 				? new PlayerType[] {
 						PlayerType.HUMAN,
 						PlayerType.AI_VERY_HARD,
@@ -66,8 +65,8 @@ public final class SingleplayerJoinGameConnector implements IJoinGameConnector {
 						PlayerType.AI_HARD,
 						PlayerType.AI_EASY,
 						PlayerType.AI_VERY_EASY };
-		final PlayerSlot playerSlot = new PlayerSlot(this, PlayerId.generate(), mapLoader.getMaxPlayers(), playerTypes);
-		if (slot == 0) {
+		final PlayerSlot playerSlot = new PlayerSlot(this, index, mapLoader.getMaxPlayers(), playerTypes);
+		if (index == 0) {
 			final SettingsManager settingsManager = SettingsManager.getInstance();
 			playerSlot.setPlayerName(settingsManager.getPlayer().getName());
 		}
@@ -76,7 +75,7 @@ public final class SingleplayerJoinGameConnector implements IJoinGameConnector {
 	}
 
 	@Override
-	public void updatePlayer(PlayerId playerId, PlayerType playerType, ECivilisation civilisation, int team, boolean ready) {
+	public void updatePlayer(int index, PlayerType playerType, ECivilisation civilisation, int team, boolean ready) {
 	}
 
 	@Override
