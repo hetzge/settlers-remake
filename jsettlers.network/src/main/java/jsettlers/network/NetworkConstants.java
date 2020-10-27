@@ -150,6 +150,7 @@ public final class NetworkConstants {
 		CHANGE_TEAM,
 		
 		// TODO replace MATCH_INFO_UPDATE
+		JOIN_MATCH,
 		UPDATE_MATCH,
 		UPDATE_MATCHES,
 		UPDATE_CIVILISATION,

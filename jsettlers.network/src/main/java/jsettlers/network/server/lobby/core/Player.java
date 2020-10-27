@@ -3,20 +3,18 @@ package jsettlers.network.server.lobby.core;
 import java.util.Objects;
 import java.util.Optional;
 
-import jsettlers.common.player.ECivilisation;
-
 public final class Player {
 
 	private final int index;
 	private String name;
 	private UserId userId;
-	private EPlayerState state;
-	private ECivilisation civilisation;
-	private PlayerType type;
+	private ELobbyPlayerState state;
+	private ELobbyCivilisation civilisation;
+	private ELobbyPlayerType type;
 	private int team;
 	private boolean ready;
 
-	public Player(int index, String name, UserId userId, EPlayerState state, ECivilisation civilisation, PlayerType type, int team, boolean ready) {
+	public Player(int index, String name, UserId userId, ELobbyPlayerState state, ELobbyCivilisation civilisation, ELobbyPlayerType type, int team, boolean ready) {
 		this.index = index;
 		this.name = name;
 		this.userId = userId;
@@ -54,15 +52,15 @@ public final class Player {
 		return Optional.ofNullable(userId);
 	}
 
-	public EPlayerState getState() {
+	public ELobbyPlayerState getState() {
 		return state;
 	}
 
-	public ECivilisation getCivilisation() {
+	public ELobbyCivilisation getCivilisation() {
 		return civilisation;
 	}
 
-	public PlayerType getType() {
+	public ELobbyPlayerType getType() {
 		return type;
 	}
 
@@ -82,15 +80,15 @@ public final class Player {
 		this.userId = userId;
 	}
 
-	public void setCivilisation(ECivilisation civilisation) {
+	public void setCivilisation(ELobbyCivilisation civilisation) {
 		this.civilisation = civilisation;
 	}
 
-	public void setState(EPlayerState state) {
+	public void setState(ELobbyPlayerState state) {
 		this.state = state;
 	}
 
-	public void setType(PlayerType type) {
+	public void setType(ELobbyPlayerType type) {
 		this.type = type;
 	}
 

@@ -14,20 +14,10 @@
  *******************************************************************************/
 package jsettlers.main;
 
-import java.util.LinkedList;
-import java.util.List;
-
-import jsettlers.common.menu.IJoinableGame;
 import jsettlers.common.menu.IMultiplayerConnector;
-import jsettlers.common.utils.collections.ChangingList;
-import jsettlers.main.datatypes.JoinableGame;
 import jsettlers.network.client.IClientConnection;
 import jsettlers.network.client.RemoteMapDirectory;
 import jsettlers.network.client.interfaces.INetworkClient;
-import jsettlers.network.client.receiver.IPacketReceiver;
-import jsettlers.network.infrastructure.log.Logger;
-import jsettlers.network.server.lobby.core.Match;
-import jsettlers.network.server.lobby.network.MatchArrayPacket;
 
 /**
  * This class implements the {@link IMultiplayerConnector} interface and supports the UI with the list of available multiplayer games and allows to start or create them.
@@ -37,39 +27,19 @@ import jsettlers.network.server.lobby.network.MatchArrayPacket;
  */
 public class MultiplayerConnector implements IMultiplayerConnector, IClientConnection {
 
-	private final AsyncNetworkClientConnector networkClientFactory;
-	private final ChangingList<IJoinableGame> joinableGames = new ChangingList<>();
-
 	private final String userId;
 	private final String userName;
+	private final AsyncNetworkClientConnector networkClientFactory;
 
-	public MultiplayerConnector(final String serverAddress, final String userId, final String userName, Logger log) {
+	public MultiplayerConnector(final String serverAddress, final String userId, final String userName) {
 		this.userId = userId;
 		this.userName = userName;
-		networkClientFactory = new AsyncNetworkClientConnector(serverAddress, userId, userName, generateMatchesReceiver());
-	}
-
-	private IPacketReceiver<MatchArrayPacket> generateMatchesReceiver() {
-		return packet -> {
-			List<IJoinableGame> openGames = new LinkedList<>();
-			for (Match match : packet.getMatches()) {
-				openGames.add(new JoinableGame(match));
-			}
-			joinableGames.setList(openGames);
-		};
+		this.networkClientFactory = new AsyncNetworkClientConnector(serverAddress, userId, userName);
 	}
 
 	@Override
-	public ChangingList<IJoinableGame> getJoinableMultiplayerGames() {
-		return joinableGames;
-	}
-
 	public INetworkClient getNetworkClient() {
 		return networkClientFactory.getNetworkClient();
-	}
-
-	public INetworkClient getNetworkClientAsync() {
-		return networkClientFactory.getNetworkClientAsync();
 	}
 
 	@Override

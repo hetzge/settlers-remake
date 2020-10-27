@@ -115,7 +115,6 @@ public final class GameServerThread extends Thread {
 	@Override
 	public synchronized void start() {
 		super.start();
-		controller.start();
 	}
 
 	public synchronized void shutdown() {

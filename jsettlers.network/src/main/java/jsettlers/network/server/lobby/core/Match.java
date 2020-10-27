@@ -58,16 +58,11 @@ public final class Match {
 	}
 
 	public boolean areAllPlayersReady() {
-		for (Player player : players) {
-			if (!player.isReady()) {
-				return false;
-			}
-		}
-		return true;
+		return players.stream().allMatch(Player::isReady);
 	}
 
 	public void setAiPlayersIngame() {
-		players.stream().filter(p -> p.getType().isAi()).forEach(p -> p.setState(EPlayerState.INGAME));
+		players.stream().filter(p -> p.getType().isAi()).forEach(p -> p.setState(ELobbyPlayerState.INGAME));
 	}
 
 	public MatchId getId() {

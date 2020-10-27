@@ -7,9 +7,10 @@ import java.util.Objects;
 
 import jsettlers.common.player.ECivilisation;
 import jsettlers.network.infrastructure.channel.packet.Packet;
-import jsettlers.network.server.lobby.core.EPlayerState;
+import jsettlers.network.server.lobby.core.ELobbyPlayerState;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.PlayerType;
+import jsettlers.network.server.lobby.core.ELobbyCivilisation;
+import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.UserId;
 
 public class PlayerPacket extends Packet {
@@ -43,9 +44,9 @@ public class PlayerPacket extends Packet {
 				dis.readInt(),
 				dis.readUTF(),
 				deserializeUserId(dis),
-				EPlayerState.VALUES[dis.readInt()],
-				ECivilisation.VALUES[dis.readInt()],
-				PlayerType.VALUES[dis.readInt()],
+				ELobbyPlayerState.VALUES[dis.readInt()],
+				ELobbyCivilisation.VALUES[dis.readInt()],
+				ELobbyPlayerType.VALUES[dis.readInt()],
 				dis.readInt(),
 				dis.readBoolean());
 	}

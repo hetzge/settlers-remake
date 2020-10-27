@@ -50,10 +50,12 @@ import jsettlers.main.swing.JSettlersSwingUtil;
 import jsettlers.main.swing.lookandfeel.ELFStyle;
 import jsettlers.main.swing.lookandfeel.GBC;
 import jsettlers.main.swing.lookandfeel.components.BackgroundPanel;
-import jsettlers.network.server.lobby.core.EPlayerState;
+import jsettlers.main.swing.menu.joinpanel.controller.IJoinGameController;
+import jsettlers.network.server.lobby.core.ELobbyCivilisation;
+import jsettlers.network.server.lobby.core.ELobbyPlayerState;
+import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.PlayerType;
 import jsettlers.network.server.lobby.core.ResourceAmount;
 
 /**
@@ -99,10 +101,10 @@ public class JoinGamePanel extends BackgroundPanel {
 	private final JTextArea chatArea = new JTextArea();
 	private final JButton sendChatMessageButton = new JButton();
 	private final List<PlayerSlot> playerSlots = new ArrayList<>();
-	private final IJoinGameConnector connector;
+	private final IJoinGameController controller;
 
-	public JoinGamePanel(IJoinGameConnector connector) {
-		this.connector = connector;
+	public JoinGamePanel(IJoinGameController controller) {
+		this.controller = controller;
 		createStructure();
 		setStyle();
 		localize();
@@ -204,16 +206,16 @@ public class JoinGamePanel extends BackgroundPanel {
 
 	private void addListener() {
 		numberOfPlayersComboBox.addActionListener(e -> updateNumberOfPlayerSlots());
-		startResourcesComboBox.addActionListener(e -> connector.updateMatch(getPeaceTime(), getStartResourceAmount()));
-		peaceTimeTextField.addActionListener(e -> connector.updateMatch(getPeaceTime(), getStartResourceAmount()));
+		startResourcesComboBox.addActionListener(e -> controller.updateMatch(getPeaceTime(), getStartResourceAmount()));
+		peaceTimeTextField.addActionListener(e -> controller.updateMatch(getPeaceTime(), getStartResourceAmount()));
 		ActionListener sendChatMessageListener = e -> {
-			connector.sendChatMessage(chatInputField.getText());
+			controller.sendChatMessage(chatInputField.getText());
 			chatInputField.setText("");
 		};
 		sendChatMessageButton.addActionListener(sendChatMessageListener);
 		chatInputField.addActionListener(sendChatMessageListener);
-		cancelButton.addActionListener(e -> connector.cancel());
-		startGameButton.addActionListener(e -> connector.start());
+		cancelButton.addActionListener(e -> controller.cancel());
+		startGameButton.addActionListener(e -> controller.start());
 	}
 
 	public void setTitle(String title) {
@@ -221,6 +223,7 @@ public class JoinGamePanel extends BackgroundPanel {
 	}
 
 	public void setupCurrentPlayer(Player player) {
+		setupHost(player.isHost());
 		for (PlayerSlot playerSlot : playerSlots) {
 			if (player.isHost()) {
 				playerSlot.enable();
@@ -261,7 +264,7 @@ public class JoinGamePanel extends BackgroundPanel {
 	}
 
 	private void setPeaceTime(Duration peaceTime) {
-		SwingUtils.set(peaceTimeTextField, () -> peaceTimeTextField.setText(String.valueOf(peaceTime.toMinutes())));
+		JSettlersSwingUtil.set(peaceTimeTextField, () -> peaceTimeTextField.setText(String.valueOf(peaceTime.toMinutes())));
 	}
 
 	private Duration getPeaceTime() {
@@ -269,7 +272,7 @@ public class JoinGamePanel extends BackgroundPanel {
 	}
 
 	private void setStartResourceAmount(ResourceAmount amount) {
-		SwingUtils.set(startResourcesComboBox, () -> startResourcesComboBox.setSelectedIndex(amount.ordinal()));
+		JSettlersSwingUtil.set(startResourcesComboBox, () -> startResourcesComboBox.setSelectedIndex(amount.ordinal()));
 	}
 
 	private ResourceAmount getStartResourceAmount() {
@@ -299,10 +302,10 @@ public class JoinGamePanel extends BackgroundPanel {
 	private void buildPlayerSlots(MapLoader mapLoader) {
 		final PlayerSetting[] playerSettings = mapLoader.getFileHeader().getPlayerSettings();
 		final List<Player> players = IntStream.range(0, mapLoader.getMaxPlayers()).mapToObj(i -> {
-			final ECivilisation civilisation = Optional.ofNullable(playerSettings[i].getCivilisation()).orElse(ECivilisation.ROMAN);
-			final PlayerType playerType = Optional.ofNullable(playerSettings[i].getPlayerType()).map(PlayerType::from).orElse(PlayerType.AI_EASY);
+			final ELobbyCivilisation civilisation = Utils.lobby(Optional.ofNullable(playerSettings[i].getCivilisation()).orElse(ECivilisation.ROMAN));
+			final ELobbyPlayerType playerType = Optional.ofNullable(playerSettings[i].getPlayerType()).map(Utils::lobby).orElse(ELobbyPlayerType.AI_EASY);
 			final int team = Optional.ofNullable(playerSettings[i].getTeamId()).map(it -> (int) it).orElse(i + 1);
-			return new Player(i, "Player-" + i, null, EPlayerState.UNKNOWN, civilisation, playerType, team, false);
+			return new Player(i, "Player-" + i, null, ELobbyPlayerState.UNKNOWN, civilisation, playerType, team, false);
 		}).collect(Collectors.toList());
 		buildPlayerSlots(players);
 	}
@@ -311,7 +314,7 @@ public class JoinGamePanel extends BackgroundPanel {
 		playerSlots.clear();
 
 		for (Player player : players) {
-			playerSlots.add(connector.createPlayerSlot(player.getIndex()));
+			playerSlots.add(controller.createPlayerSlot(player.getIndex()));
 		}
 		for (Player player : players) {
 			setupPlayer(player);
@@ -365,9 +368,9 @@ public class JoinGamePanel extends BackgroundPanel {
 	public PlayerSetting[] getPlayerSettings() {
 		return playerSlots.stream()
 				.map(playerSlot -> {
-					PlayerType playerType = playerSlot.getPlayerType();
-					if (playerType.getPlayerType() != null) {
-						return new PlayerSetting(playerSlot.getPlayerType().getPlayerType(), playerSlot.getCivilisation(), (byte) playerSlot.getTeam());
+					ELobbyPlayerType playerType = playerSlot.getPlayerType();
+					if (Utils.ingame(playerType) != null) {
+						return new PlayerSetting(Utils.ingame(playerType), Utils.ingame(playerSlot.getCivilisation()), (byte) playerSlot.getTeam());
 					} else {
 						return new PlayerSetting();
 					}
@@ -376,6 +379,6 @@ public class JoinGamePanel extends BackgroundPanel {
 	}
 
 	public boolean haveAllPlayersStartFinished() {
-		return playerSlots.stream().map(PlayerSlot::getState).allMatch(EPlayerState.INGAME::equals);
+		return playerSlots.stream().map(PlayerSlot::getState).allMatch(ELobbyPlayerState.INGAME::equals);
 	}
 }

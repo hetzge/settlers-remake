@@ -14,7 +14,6 @@
  *******************************************************************************/
 package jsettlers.network.client;
 
-import java.io.IOException;
 import java.util.Timer;
 
 import jsettlers.network.NetworkConstants;
@@ -29,10 +28,7 @@ import jsettlers.network.client.time.TimeSynchronizationListener;
 import jsettlers.network.common.packets.BooleanMessagePacket;
 import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.IdPacket;
-import jsettlers.network.common.packets.IntegerMessagePacket;
 import jsettlers.network.common.packets.MapInfoPacket;
-import jsettlers.network.common.packets.MatchInfoUpdatePacket;
-import jsettlers.network.common.packets.MatchStartPacket;
 import jsettlers.network.common.packets.OpenNewMatchPacket;
 import jsettlers.network.common.packets.PlayerInfoPacket;
 import jsettlers.network.infrastructure.channel.AsyncChannel;
@@ -45,7 +41,6 @@ import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.UserId;
-import jsettlers.network.server.lobby.network.MatchArrayPacket;
 import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.lobby.network.PlayerPacket;
 import jsettlers.network.synchronic.timer.NetworkTimer;
@@ -64,88 +59,16 @@ public class NetworkClient implements ITaskScheduler, INetworkClient {
 	private final INetworkClientClock clock;
 	private final UserId userId;
 
-	public NetworkClient(AsyncChannel channel, UserId userId) throws IOException {
+	public NetworkClient(AsyncChannel channel, UserId userId) {
 		this.channel = channel;
 		this.userId = userId;
-		channel.setChannelClosedListener(() -> {
-			close();
-		});
-
 		this.timer = new Timer("NetworkClientTimer");
 		this.clock = new NetworkTimer();
 
+		channel.setChannelClosedListener(this::close);
 		if (!channel.isStarted()) {
 			channel.start();
 		}
-	}
-
-	@Override
-	public void logIn(String name, IPacketReceiver<MatchArrayPacket> matchesReceiver) throws IllegalStateException {
-		channel.registerListener(generateDefaultListener(ENetworkKey.UPDATE_MATCHES, MatchArrayPacket.class, matchesReceiver));
-		channel.sendPacketAsync(ENetworkKey.IDENTIFY_USER, new PlayerInfoPacket(userId.getValue(), name, false));
-	}
-
-	@Override
-	public void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo, long randomSeed, IPacketReceiver<MatchStartPacket> matchStartedListener,
-			IPacketReceiver<MatchInfoUpdatePacket> matchInfoUpdatedListener, IPacketReceiver<ChatMessagePacket> chatMessageReceiver) throws IllegalStateException {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.REQUEST_OPEN_NEW_MATCH, new OpenNewMatchPacket(matchName, maxPlayers, mapInfo, randomSeed));
-	}
-
-	@Override
-	public void joinMatch(String matchId, IPacketReceiver<MatchStartPacket> matchStartedListener,
-			IPacketReceiver<MatchInfoUpdatePacket> matchInfoUpdatedListener, IPacketReceiver<ChatMessagePacket> chatMessageReceiver)
-			throws IllegalStateException {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.REQUEST_JOIN_MATCH, new IdPacket(matchId));
-	}
-
-	@Override
-	public void leaveMatch() {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.REQUEST_LEAVE_MATCH, new EmptyPacket());
-	}
-
-	@Override
-	public void startMatch() throws IllegalStateException {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.REQUEST_START_MATCH, new EmptyPacket());
-	}
-
-	@Override
-	public void setReadyState(boolean ready) throws IllegalStateException {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.CHANGE_READY_STATE, new BooleanMessagePacket(ready));
-	}
-
-	@Override
-	public void setCivilisation(int civilisation) throws IllegalStateException {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.CHANGE_CIVILISATION, new IntegerMessagePacket(civilisation));
-	}
-
-	@Override
-	public void setTeamId(byte teamId) throws IllegalStateException {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.CHANGE_TEAM, new IntegerMessagePacket(teamId));
-	}
-
-	@Override
-	public void setStartFinished(boolean startFinished) throws IllegalStateException {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.CHANGE_START_FINISHED, new BooleanMessagePacket(startFinished));
-	}
-
-	@Override
-	public void sendChatMessage(UserId userId, String message) throws IllegalStateException {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.CHAT_MESSAGE, new ChatMessagePacket(userId.getValue(), message));
-	}
-
-	@Override
-	public void registerRejectReceiver(IPacketReceiver<RejectPacket> rejectListener) {
-		channel.registerListener(generateDefaultListener(NetworkConstants.ENetworkKey.REJECT_PACKET, RejectPacket.class, rejectListener));
-	}
-
-	@Override
-	public void scheduleTask(TaskPacket task) {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.SYNCHRONOUS_TASK, task);
-	}
-
-	private <T extends Packet> DefaultClientPacketListener<T> generateDefaultListener(ENetworkKey key, Class<T> classType,
-			IPacketReceiver<T> listener) {
-		return new DefaultClientPacketListener<>(key, new GenericDeserializer<>(classType), listener);
 	}
 
 	@Override
@@ -155,21 +78,67 @@ public class NetworkClient implements ITaskScheduler, INetworkClient {
 		clock.stopExecution();
 	}
 
-	void identifiedUserEvent() {
-		channel.removeListener(NetworkConstants.ENetworkKey.IDENTIFY_USER);
+	@Override
+	public UserId getUserId() {
+		return userId;
+	}
+
+	// LOBBY
+
+	@Override
+	public void logIn(String username) {
+		channel.sendPacketAsync(ENetworkKey.IDENTIFY_USER, new PlayerInfoPacket(userId.getValue(), username, false));
 	}
 
 	@Override
-	public void startGameSynchronization() {
-		channel.removeListener(NetworkConstants.ENetworkKey.MATCH_STARTED);
-		startTimeSynchronization();
-		channel.initPinging();
+	public void sendChatMessage(String message) throws IllegalStateException {
+		channel.sendPacketAsync(ENetworkKey.CHAT_MESSAGE, new ChatMessagePacket(userId.getValue(), message));
 	}
 
-	private void startTimeSynchronization() {
+	// MATCH
+
+	@Override
+	public void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo) {
+		channel.sendPacketAsync(ENetworkKey.REQUEST_OPEN_NEW_MATCH, new OpenNewMatchPacket(matchName, maxPlayers, mapInfo, 0L));
+	}
+
+	@Override
+	public void joinMatch(MatchId matchId) {
+		channel.sendPacketAsync(ENetworkKey.REQUEST_JOIN_MATCH, new IdPacket(matchId.getValue()));
+	}
+
+	@Override
+	public void leaveMatch() {
+		channel.sendPacketAsync(ENetworkKey.REQUEST_LEAVE_MATCH, new EmptyPacket());
+	}
+
+	@Override
+	public void startMatch() throws IllegalStateException {
+		channel.sendPacketAsync(ENetworkKey.REQUEST_START_MATCH, new EmptyPacket());
+	}
+
+	@Override
+	public void updateMatch(Match match) {
+		channel.sendPacket(ENetworkKey.UPDATE_MATCH, new MatchPacket(match));
+	}
+
+	@Override
+	public void updatePlayer(Player player) {
+		channel.sendPacket(ENetworkKey.UPDATE_PLAYER, new PlayerPacket(player));
+	}
+
+	// INGAME
+
+	@Override
+	public void setStartFinished(boolean startFinished) throws IllegalStateException {
+		channel.sendPacketAsync(ENetworkKey.CHANGE_START_FINISHED, new BooleanMessagePacket(startFinished));
+	}
+
+	@Override
+	public void startTimeSynchronization() {
 		channel.registerListener(new TimeSynchronizationListener(channel, clock));
-		TimeSyncSenderTimerTask timeSyncSender = new TimeSyncSenderTimerTask(channel, clock);
-		timer.schedule(timeSyncSender, 0, NetworkConstants.Client.TIME_SYNC_SEND_INTERVALL);
+		timer.schedule(new TimeSyncSenderTimerTask(channel, clock), 0, NetworkConstants.Client.TIME_SYNC_SEND_INTERVALL);
+		channel.initPinging();
 	}
 
 	@Override
@@ -178,24 +147,11 @@ public class NetworkClient implements ITaskScheduler, INetworkClient {
 	}
 
 	@Override
-	public UserId getUserId() {
-		return userId;
+	public void scheduleTask(TaskPacket task) {
+		channel.sendPacketAsync(ENetworkKey.SYNCHRONOUS_TASK, task);
 	}
 
-	@Override
-	public int getRoundTripTimeInMs() {
-		return channel.getRoundTripTime().getRtt();
-	}
-
-	@Override
-	public void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo) {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.REQUEST_OPEN_NEW_MATCH, new OpenNewMatchPacket(matchName, maxPlayers, mapInfo, 0L));
-	}
-
-	@Override
-	public void joinMatch(MatchId matchId) {
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.REQUEST_JOIN_MATCH, new IdPacket(matchId.getValue()));
-	}
+	// CALLBACKS
 
 	@Override
 	public void registerListener(IChannelListener listener) {
@@ -208,12 +164,12 @@ public class NetworkClient implements ITaskScheduler, INetworkClient {
 	}
 
 	@Override
-	public void updatePlayer(Player player) {
-		channel.sendPacket(ENetworkKey.UPDATE_PLAYER, new PlayerPacket(player));
+	public void registerRejectReceiver(IPacketReceiver<RejectPacket> rejectListener) {
+		channel.registerListener(generateDefaultListener(NetworkConstants.ENetworkKey.REJECT_PACKET, RejectPacket.class, rejectListener));
 	}
 
-	@Override
-	public void updateMatch(Match match) {
-		channel.sendPacket(ENetworkKey.UPDATE_MATCH, new MatchPacket(match));
+	private <T extends Packet> DefaultClientPacketListener<T> generateDefaultListener(ENetworkKey key, Class<T> classType,
+			IPacketReceiver<T> listener) {
+		return new DefaultClientPacketListener<>(key, new GenericDeserializer<>(classType), listener);
 	}
 }

@@ -16,7 +16,6 @@ package jsettlers.common.menu;
 
 import java8.util.function.Consumer;
 import jsettlers.common.map.IGraphicsGrid;
-import jsettlers.common.player.IEndgameStatistic;
 import jsettlers.common.player.IInGamePlayer;
 import jsettlers.common.statistics.IGameTimeProvider;
 

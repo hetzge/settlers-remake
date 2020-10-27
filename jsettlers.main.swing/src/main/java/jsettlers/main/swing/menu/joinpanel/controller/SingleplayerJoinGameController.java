@@ -1,4 +1,4 @@
-package jsettlers.main.swing.menu.joinpanel;
+package jsettlers.main.swing.menu.joinpanel.controller;
 
 import java.time.Duration;
 
@@ -11,17 +11,20 @@ import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
 import jsettlers.main.swing.JSettlersFrame;
+import jsettlers.main.swing.menu.joinpanel.JoinGamePanel;
+import jsettlers.main.swing.menu.joinpanel.PlayerSlot;
 import jsettlers.main.swing.settings.SettingsManager;
-import jsettlers.network.server.lobby.core.PlayerType;
+import jsettlers.network.server.lobby.core.ELobbyCivilisation;
+import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.ResourceAmount;
 
-public final class SingleplayerJoinGameConnector implements IJoinGameConnector {
+public final class SingleplayerJoinGameController implements IJoinGameController {
 
 	private final JSettlersFrame settlersFrame;
 	private final MapLoader mapLoader;
 	private final JoinGamePanel panel;
 
-	public SingleplayerJoinGameConnector(JSettlersFrame settlersFrame, MapLoader mapLoader) {
+	public SingleplayerJoinGameController(JSettlersFrame settlersFrame, MapLoader mapLoader) {
 		this.settlersFrame = settlersFrame;
 		this.mapLoader = mapLoader;
 		this.panel = new JoinGamePanel(this);
@@ -55,14 +58,14 @@ public final class SingleplayerJoinGameConnector implements IJoinGameConnector {
 
 	@Override
 	public PlayerSlot createPlayerSlot(int index) {
-		final PlayerType[] playerTypes = index == 0
-				? new PlayerType[] {
-						PlayerType.HUMAN }
-				: new PlayerType[] {
-						PlayerType.AI_VERY_HARD,
-						PlayerType.AI_HARD,
-						PlayerType.AI_EASY,
-						PlayerType.AI_VERY_EASY };
+		final ELobbyPlayerType[] playerTypes = index == 0
+				? new ELobbyPlayerType[] {
+						ELobbyPlayerType.HUMAN }
+				: new ELobbyPlayerType[] {
+						ELobbyPlayerType.AI_VERY_HARD,
+						ELobbyPlayerType.AI_HARD,
+						ELobbyPlayerType.AI_EASY,
+						ELobbyPlayerType.AI_VERY_EASY };
 		final PlayerSlot playerSlot = new PlayerSlot(this, index, mapLoader.getMaxPlayers(), playerTypes);
 		if (index == 0) {
 			final SettingsManager settingsManager = SettingsManager.getInstance();
@@ -73,7 +76,7 @@ public final class SingleplayerJoinGameConnector implements IJoinGameConnector {
 	}
 
 	@Override
-	public void updatePlayer(int index, PlayerType playerType, ECivilisation civilisation, int team, boolean ready) {
+	public void updatePlayer(int index, ELobbyPlayerType playerType, ELobbyCivilisation civilisation, int team, boolean ready) {
 	}
 
 	@Override

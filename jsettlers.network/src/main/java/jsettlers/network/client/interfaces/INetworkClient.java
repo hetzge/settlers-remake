@@ -14,22 +14,17 @@
  *******************************************************************************/
 package jsettlers.network.client.interfaces;
 
+import java.io.Closeable;
+
 import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.client.receiver.IPacketReceiver;
-import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.MapInfoPacket;
-import jsettlers.network.common.packets.MatchInfoPacket;
-import jsettlers.network.common.packets.MatchInfoUpdatePacket;
-import jsettlers.network.common.packets.MatchStartPacket;
-import jsettlers.network.common.packets.PlayerInfoPacket;
 import jsettlers.network.infrastructure.channel.IChannelListener;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.UserId;
-import jsettlers.network.server.lobby.network.MatchArrayPacket;
-import jsettlers.network.server.match.EPlayerState;
 
 /**
  * This interface defines the methods offered by the client of the network library.
@@ -37,95 +32,43 @@ import jsettlers.network.server.match.EPlayerState;
  * @author Andreas Eberle
  * 
  */
-public interface INetworkClient {
+public interface INetworkClient extends Closeable {
 
-	/**
-	 * Opens a new match on the server.
-	 * 
-	 * @param matchName
-	 *            Name of the new match.
-	 * @param maxPlayers
-	 *            The maximum number of players that can join the match.
-	 * @param mapInfo
-	 *            The map of the match.
-	 * @param randomSeed
-	 *            The random seed used for the match.
-	 * @param matchStartedListener
-	 *            The listener that will be called, when the match starts.
-	 * @param matchInfoUpdatedListener
-	 *            The listener that will be called, when there are updates on the players or the match informations. For example when a player joined or left.
-	 * @param chatMessageReceiver
-	 *            The receiver for chat messages. It will be called with any received chat message.
-	 * @throws InvalidStateException
-	 *             This exception might be thrown, if the client is either not logged in to the server (see {@link #logIn(String, String, IPacketReceiver)}) or if the client is already in a match.
-	 */
-	void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo, long randomSeed,
-			IPacketReceiver<MatchStartPacket> matchStartedListener, IPacketReceiver<MatchInfoUpdatePacket> matchInfoUpdatedListener,
-			IPacketReceiver<ChatMessagePacket> chatMessageReceiver)
-			throws IllegalStateException;
+	UserId getUserId();
 
-	/**
-	 * 
-	 * @param match
-	 * @param matchStartedListener
-	 * @param matchInfoUpdatedListener
-	 * @param chatMessageReceiver
-	 * @throws InvalidStateException
-	 */
-	void joinMatch(String matchId, IPacketReceiver<MatchStartPacket> matchStartedListener,
-			IPacketReceiver<MatchInfoUpdatePacket> matchInfoUpdatedListener, IPacketReceiver<ChatMessagePacket> chatMessageReceiver)
-			throws IllegalStateException;
+	// LOBBY
 
-	void startMatch() throws IllegalStateException;
+	void logIn(String username);
 
-	void setReadyState(boolean ready) throws IllegalStateException;
+	void sendChatMessage(String message);
 
-	void setCivilisation(int civilisation) throws IllegalStateException;
-
-	void setTeamId(byte teamId) throws IllegalStateException;
-
-	void sendChatMessage(UserId userId, String message) throws IllegalStateException;
-
-	void leaveMatch();
-
-	void registerRejectReceiver(IPacketReceiver<RejectPacket> rejectListener);
-
-	void close();
-
-	int getRoundTripTimeInMs();
-
-	// ------ NEW
-
-	void registerListener(IChannelListener listener);
-
-	void removeListener(ENetworkKey key);
+	// MATCH
 
 	void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo);
 
 	void joinMatch(MatchId matchId);
 
-	void updatePlayer(Player player);
+	void leaveMatch();
+
+	void startMatch() throws IllegalStateException;
 
 	void updateMatch(Match match);
 
-	IGameClock getGameClock();
+	void updatePlayer(Player player);
+
+	// INGAME
 
 	void setStartFinished(boolean startFinished);
 
-	UserId getUserId();
+	void startTimeSynchronization();
 
-	/**
-	 * Tries to authenticate the user at the server and registers the given {@link IPacketReceiver} to receive the list of joinable matches. The receiver will be called with a new list of matches form
-	 * time to time.
-	 * 
-	 * @param name
-	 *            The displayed name of the player. The name can always be changed.
-	 * @param matchListReceiver
-	 *            The receiver that gets the list of joinable matches.
-	 * @throws InvalidStateException
-	 *             This exception might be thrown, if the {@link #logIn(String, String, IPacketReceiver)} operation is called when the {@link INetworkClient} is already logged in to the server.
-	 */
-	void logIn(String name, IPacketReceiver<MatchArrayPacket> matchesReceiver) throws IllegalStateException;
+	IGameClock getGameClock();
 
-	void startGameSynchronization();
+	// CALLBACKS
+
+	void registerListener(IChannelListener listener);
+
+	void removeListener(ENetworkKey key);
+
+	void registerRejectReceiver(IPacketReceiver<RejectPacket> rejectListener);
 }

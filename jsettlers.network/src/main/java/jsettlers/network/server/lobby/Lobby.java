@@ -19,13 +19,13 @@ import jsettlers.network.common.packets.TimeSyncPacket;
 import jsettlers.network.infrastructure.channel.Channel;
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.infrastructure.log.LoggerManager;
-import jsettlers.network.server.lobby.core.EPlayerState;
+import jsettlers.network.server.lobby.core.ELobbyPlayerState;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.MatchState;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.PlayerType;
+import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.ResourceAmount;
 import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
@@ -39,10 +39,17 @@ public final class Lobby {
 
 	// TODO error handling
 	// TODO synchronize
+	// TODO lockstep ?!
+	// TODO poll open games
+	// TODO AsnycNetworkClientConnector ... setState(AsyncNetworkClientFactoryState.CONNECTED_TO_SERVER);
 
 	private final LobbyDb db;
 	private final Map<MatchId, TaskSendingTimerTask> timerTaskByMatchId;
 
+	public Lobby() {
+		this(new LobbyDb());
+	}
+	
 	public Lobby(LobbyDb db) {
 		this.db = db;
 		this.timerTaskByMatchId = new ConcurrentHashMap<>();
@@ -72,7 +79,7 @@ public final class Lobby {
 		System.out.println("Lobby.createMatch(" + userId + ", " + matchName + ", " + levelId + ", " + maxPlayers + ")");
 		final MatchId matchId = MatchId.generate();
 		final List<Player> players = IntStream.range(0, maxPlayers)
-				.mapToObj(i -> new Player(i, "Player-" + i, null, EPlayerState.UNKNOWN, ECivilisation.ROMAN, PlayerType.EMPTY, i + 1, false)).collect(Collectors.toList());
+				.mapToObj(i -> new Player(i, "Player-" + i, null, ELobbyPlayerState.UNKNOWN, ECivilisation.ROMAN, ELobbyPlayerType.EMPTY, i + 1, false)).collect(Collectors.toList());
 		final Match match = new Match(matchId, matchName, levelId, players, ResourceAmount.HIGH, Duration.ZERO, MatchState.OPENED);
 		db.setMatch(match);
 		joinMatch(userId, matchId);
@@ -91,10 +98,11 @@ public final class Lobby {
 			final Player player = match.findNextHumanPlayer().orElseThrow(() -> new LobbyException("Failed to join match. No empty slot found."));
 			player.setUserId(userId);
 			player.setName(user.getUsername());
-			player.setType(PlayerType.HUMAN);
+			player.setType(ELobbyPlayerType.HUMAN);
 			player.setReady(false);
-			player.setState(EPlayerState.UNKNOWN);
+			player.setState(ELobbyPlayerState.UNKNOWN);
 			sendMatchUpdate(ENetworkKey.UPDATE_MATCH, match);
+			sendJoinMatch(user, match);
 			// Set logger
 			user.getChannel().setLogger(match.createLogger());
 		}
@@ -111,10 +119,10 @@ public final class Lobby {
 			if (!player.isHost()) {
 				// Update player properties to empty player
 				player.setName("---");
-				player.setType(PlayerType.EMPTY);
+				player.setType(ELobbyPlayerType.EMPTY);
 				player.setReady(false);
 				player.setUserId(null);
-				player.setState(EPlayerState.UNKNOWN);
+				player.setState(ELobbyPlayerState.UNKNOWN);
 				sendPlayerUpdate(match, player);
 			} else {
 				// Cancel and remove the timer task
@@ -144,9 +152,11 @@ public final class Lobby {
 
 		final Match match = db.getActiveMatch(userId);
 		if (!match.areAllPlayersReady()) {
+			System.out.println("Not all players are ready");
 			return; // not all players ready
 		}
 		if (match.getState() == MatchState.RUNNING) {
+			System.out.println("Match already running");
 			return; // match already started
 		}
 		final TaskCollectingListener taskCollectingListener = new TaskCollectingListener();
@@ -176,7 +186,7 @@ public final class Lobby {
 		final Match match = db.getActiveMatch(userId);
 		match.getPlayer(userId).ifPresent(player -> {
 			if (value) {
-				player.setState(EPlayerState.INGAME);
+				player.setState(ELobbyPlayerState.INGAME);
 				sendPlayerUpdate(match, player);
 			}
 		});
@@ -204,9 +214,9 @@ public final class Lobby {
 
 			if (player.getType() != updatePlayer.getType() && updatePlayer.getType().isHuman()) {
 				player.setReady(false);
-			} else if (updatePlayer.getType() == PlayerType.EMPTY) {
+			} else if (updatePlayer.getType() == ELobbyPlayerType.EMPTY) {
 				player.setReady(false);
-			} else if (updatePlayer.getType() == PlayerType.NONE) {
+			} else if (updatePlayer.getType() == ELobbyPlayerType.NONE) {
 				player.setReady(true);
 			} else if (updatePlayer.getType().isAi()) {
 				player.setReady(true);
@@ -214,8 +224,8 @@ public final class Lobby {
 				player.setReady(updatePlayer.isReady());
 			}
 
-			if (player.getType() != updatePlayer.getType() && updatePlayer.getType() == PlayerType.HUMAN) {
-				player.setType(PlayerType.EMPTY);
+			if (player.getType() != updatePlayer.getType() && updatePlayer.getType() == ELobbyPlayerType.HUMAN) {
+				player.setType(ELobbyPlayerType.EMPTY);
 			} else {
 				player.setType(updatePlayer.getType());
 			}
@@ -234,6 +244,10 @@ public final class Lobby {
 			final User user = db.getUser(userId);
 			user.getChannel().sendPacket(networkKey, new MatchPacket(match));
 		}
+	}
+
+	private void sendJoinMatch(User user, Match match) {
+		user.getChannel().sendPacket(ENetworkKey.JOIN_MATCH, new MatchPacket(match));
 	}
 
 	private void sendPlayerUpdate(Match match, Player player) {

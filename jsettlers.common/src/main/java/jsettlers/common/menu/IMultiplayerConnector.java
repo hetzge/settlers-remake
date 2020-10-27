@@ -14,7 +14,7 @@
  *******************************************************************************/
 package jsettlers.common.menu;
 
-import jsettlers.common.utils.collections.ChangingList;
+import jsettlers.network.client.interfaces.INetworkClient;
 
 /**
  * This interface offers the methods that interact with a multiplayer server.
@@ -23,14 +23,7 @@ import jsettlers.common.utils.collections.ChangingList;
  */
 public interface IMultiplayerConnector {
 
-	/**
-	 * Gets a list of multiplayer games that can be joined.
-	 * 
-	 * @param onServer
-	 *            The name of the server we should search on.
-	 * @return
-	 */
-	ChangingList<IJoinableGame> getJoinableMultiplayerGames();
+	INetworkClient getNetworkClient();
 
 	/**
 	 *

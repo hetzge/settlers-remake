@@ -25,7 +25,7 @@ public final class LobbyDb {
 	}
 
 	public User getUser(UserId userId) {
-		return Optional.ofNullable(userById.get(userId)).orElseThrow(() -> new LobbyException("User not found"));
+		return Optional.ofNullable(userById.get(userId)).orElseThrow(() -> new LobbyException(String.format("User %s not found", userId)));
 	}
 
 	public Collection<User> getUsers() {
@@ -45,7 +45,7 @@ public final class LobbyDb {
 	}
 
 	public Match getMatch(MatchId matchId) {
-		return Optional.ofNullable(matchById.get(matchId)).orElseThrow(() -> new LobbyException("Match not found"));
+		return Optional.ofNullable(matchById.get(matchId)).orElseThrow(() -> new LobbyException(String.format("Match %s not found", matchId)));
 	}
 
 	public void removeMatch(MatchId matchId) {
@@ -57,7 +57,7 @@ public final class LobbyDb {
 	}
 
 	public Match getActiveMatch(UserId userId) {
-		return matchById.values().stream().filter(match -> match.contains(userId)).findFirst().orElseThrow(() -> new LobbyException("No active match for user found"));
+		return matchById.values().stream().filter(match -> match.contains(userId)).findFirst().orElseThrow(() -> new LobbyException(String.format("No active match for %s found", userId)));
 	}
 
 	public Collection<Match> getMatches() {
@@ -65,6 +65,6 @@ public final class LobbyDb {
 	}
 
 	public Player getPlayer(UserId userId) {
-		return getActiveMatch(userId).getPlayer(userId).orElseThrow(() -> new LobbyException("Player not found"));
+		return getActiveMatch(userId).getPlayer(userId).orElseThrow(() -> new LobbyException(String.format("Player with id %s not found", userId)));
 	}
 }

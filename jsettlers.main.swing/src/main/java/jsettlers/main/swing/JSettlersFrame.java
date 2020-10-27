@@ -40,8 +40,9 @@ import jsettlers.common.menu.IStartingGame;
 import jsettlers.graphics.map.ETextDrawPosition;
 import jsettlers.graphics.map.MapContent;
 import jsettlers.logic.map.loading.MapLoader;
-import jsettlers.main.swing.menu.joinpanel.MultiplayerJoinGameConnector;
-import jsettlers.main.swing.menu.joinpanel.SingleplayerJoinGameConnector;
+import jsettlers.main.swing.menu.joinpanel.JoinGamePanel;
+import jsettlers.main.swing.menu.joinpanel.controller.MultiplayerJoinGameController;
+import jsettlers.main.swing.menu.joinpanel.controller.SingleplayerJoinGameController;
 import jsettlers.main.swing.menu.mainmenu.MainMenuPanel;
 import jsettlers.main.swing.menu.startinggamemenu.StartingGamePanel;
 import jsettlers.main.swing.menu.statspanel.EndgameStatsPanel;
@@ -132,6 +133,10 @@ public class JSettlersFrame extends JFrame {
 		setNewContentPane(startingGamePanel);
 	}
 
+	public void showJoinGamePanel(JoinGamePanel joinGame) {
+		setNewContentPane(joinGame);
+	}
+
 	private void setNewContentPane(Container newContent) {
 		abortRedrawTimerIfPresent();
 		setContentPane(newContent);
@@ -175,15 +180,7 @@ public class JSettlersFrame extends JFrame {
 	}
 
 	public void showNewSinglePlayerGameMenu(MapLoader mapLoader) {
-		setNewContentPane(new SingleplayerJoinGameConnector(this, mapLoader).setup());
-	}
-
-	public void showNewMultiPlayerGameMenu(INetworkClient client, MapLoader mapLoader) {
-		setNewContentPane(new MultiplayerJoinGameConnector(this, client, mapLoader, null).setup());
-	}
-
-	public void showJoinMultiplayerMenu(INetworkClient client, MapLoader mapLoader, MatchId matchId) {
-		setNewContentPane(new MultiplayerJoinGameConnector(this, client, mapLoader, matchId).setup());
+		setNewContentPane(new SingleplayerJoinGameController(this, mapLoader).setup());
 	}
 
 	public void showEndgameStatistics(IStartedGame game) {

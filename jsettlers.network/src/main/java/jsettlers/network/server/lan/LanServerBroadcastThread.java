@@ -44,6 +44,7 @@ public final class LanServerBroadcastThread extends Thread {
 	public void run() {
 		try {
 			socket = new DatagramSocket();
+			socket.setBroadcast(true);
 
 			while (!canceled) {
 				try {

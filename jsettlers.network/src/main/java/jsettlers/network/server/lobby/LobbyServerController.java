@@ -2,7 +2,6 @@ package jsettlers.network.server.lobby;
 
 import java.util.Timer;
 
-import jsettlers.network.NetworkConstants;
 import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.common.packets.BooleanMessagePacket;
 import jsettlers.network.common.packets.ChatMessagePacket;
@@ -19,7 +18,6 @@ import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.lobby.network.PlayerPacket;
-import jsettlers.network.server.match.MatchesListSendingTimerTask;
 
 public final class LobbyServerController {
 
@@ -31,10 +29,6 @@ public final class LobbyServerController {
 		this.lobby = lobby;
 		this.sendMatchesTimer = new Timer("SendMatchesListTimer", true);
 		this.matchesTaskTimer = new Timer("MatchesTaskDistributionTimer", true);
-	}
-
-	public synchronized void start() {
-		sendMatchesTimer.schedule(new MatchesListSendingTimerTask(lobby), 0, NetworkConstants.Server.OPEN_MATCHES_SEND_INTERVAL_MS);
 	}
 
 	public synchronized void stop() {

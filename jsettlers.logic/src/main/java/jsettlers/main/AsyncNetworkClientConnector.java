@@ -25,7 +25,6 @@ import jsettlers.network.client.receiver.IPacketReceiver;
 import jsettlers.network.infrastructure.channel.AsyncChannel;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
 import jsettlers.network.server.lobby.core.UserId;
-import jsettlers.network.server.lobby.network.MatchArrayPacket;
 
 /**
  * 
@@ -38,18 +37,14 @@ public class AsyncNetworkClientConnector {
 	private INetworkClient networkClient = null;
 	private AsyncNetworkClientFactoryState state = AsyncNetworkClientFactoryState.CONNECTING_TO_SERVER;
 
-	public AsyncNetworkClientConnector(final String serverAddress, final String userId, final String userName,
-			final IPacketReceiver<MatchArrayPacket> matchesRetriever) {
+	public AsyncNetworkClientConnector(final String serverAddress, final String userId, final String userName) {
 		new Thread("AsyncNetworkClientConnector") {
 			@Override
 			public void run() {
 				try {
 					networkClient = new NetworkClient(new AsyncChannel(serverAddress, NetworkConstants.Server.SERVER_PORT), new UserId(userId));
 					networkClient.registerRejectReceiver(generateRejectReceiver());
-					networkClient.logIn(userName, generateMatchesRetriever(matchesRetriever));
-				} catch (IllegalStateException e) {
-					e.printStackTrace(); // this can never happen
-					setState(AsyncNetworkClientFactoryState.FAILED_CONNECTING);
+					networkClient.logIn(userName);
 				} catch (UnknownHostException e) {
 					e.printStackTrace();
 					setState(AsyncNetworkClientFactoryState.FAILED_SERVER_NOT_FOUND);
@@ -65,13 +60,6 @@ public class AsyncNetworkClientConnector {
 						setState(AsyncNetworkClientFactoryState.FAILED_CONNECTING);
 					}
 					System.out.println("Received reject packet: " + packet.getRejectedKey() + " messageid: " + packet.getErrorMessageId());
-				};
-			}
-
-			private IPacketReceiver<MatchArrayPacket> generateMatchesRetriever(final IPacketReceiver<MatchArrayPacket> matchesRetriever) {
-				return packet -> {
-					setState(AsyncNetworkClientFactoryState.CONNECTED_TO_SERVER);
-					matchesRetriever.receivePacket(packet);
 				};
 			}
 
@@ -92,8 +80,12 @@ public class AsyncNetworkClientConnector {
 
 	public synchronized void close() {
 		if (networkClient != null) {
-			networkClient.close();
-			networkClient = null;
+			try {
+				networkClient.close();
+				networkClient = null;
+			} catch (IOException exception) {
+				throw new IllegalStateException(exception);
+			}
 		}
 	}
 

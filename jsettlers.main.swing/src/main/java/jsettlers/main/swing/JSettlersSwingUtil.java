@@ -15,7 +15,11 @@
 package jsettlers.main.swing;
 
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+
+import javax.swing.JComboBox;
+import javax.swing.JTextField;
 
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.newmap.MapFileHeader;
@@ -24,7 +28,10 @@ import jsettlers.logic.map.loading.newmap.MapFileHeader;
  * @author Andreas Butti
  * @author codingberlin
  */
-public class JSettlersSwingUtil {
+public final class JSettlersSwingUtil {
+
+	private JSettlersSwingUtil() {
+	}
 
 	public static final Color DISABLE_COLOR = new Color(28, 34, 40, 150);
 
@@ -53,21 +60,53 @@ public class JSettlersSwingUtil {
 		return JSettlersSwingUtil.dye(image, DISABLE_COLOR);
 	}
 
-
 	/**
 	 * code taken from: http://stackoverflow.com/questions/21382966/colorize-a-picture-in-java
-     */
+	 */
 	public static BufferedImage dye(BufferedImage image, Color color) {
 		int w = image.getWidth();
 		int h = image.getHeight();
 		BufferedImage dyed = new BufferedImage(w, h, BufferedImage.TYPE_INT_ARGB);
 		Graphics2D g = dyed.createGraphics();
-		g.drawImage(image, 0,0, null);
+		g.drawImage(image, 0, 0, null);
 		g.setComposite(AlphaComposite.SrcAtop);
 		g.setColor(color);
-		g.fillRect(0,0,w,h);
+		g.fillRect(0, 0, w, h);
 		g.dispose();
 		return dyed;
 	}
 
+	/**
+	 * Set without trigger action listener.
+	 */
+	public static void set(JComboBox<?> component, Runnable runnable) {
+		final ActionListener[] listeners = component.getActionListeners();
+		for (final ActionListener listener : listeners) {
+			component.removeActionListener(listener);
+		}
+		try {
+			runnable.run();
+		} finally {
+			for (final ActionListener listener : listeners) {
+				component.addActionListener(listener);
+			}
+		}
+	}
+
+	/**
+	 * Set without trigger action listener.
+	 */
+	public static void set(JTextField component, Runnable runnable) {
+		final ActionListener[] listeners = component.getActionListeners();
+		for (final ActionListener listener : listeners) {
+			component.removeActionListener(listener);
+		}
+		try {
+			runnable.run();
+		} finally {
+			for (final ActionListener listener : listeners) {
+				component.addActionListener(listener);
+			}
+		}
+	}
 }

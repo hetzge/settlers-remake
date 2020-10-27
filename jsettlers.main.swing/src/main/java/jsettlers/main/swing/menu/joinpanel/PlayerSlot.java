@@ -32,8 +32,10 @@ import jsettlers.graphics.localization.Labels;
 import jsettlers.graphics.map.draw.ImageProvider;
 import jsettlers.main.swing.JSettlersSwingUtil;
 import jsettlers.main.swing.lookandfeel.ELFStyle;
-import jsettlers.network.server.lobby.core.EPlayerState;
-import jsettlers.network.server.lobby.core.PlayerType;
+import jsettlers.main.swing.menu.joinpanel.controller.IJoinGameController;
+import jsettlers.network.server.lobby.core.ELobbyCivilisation;
+import jsettlers.network.server.lobby.core.ELobbyPlayerState;
+import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 
 public class PlayerSlot {
 
@@ -46,20 +48,20 @@ public class PlayerSlot {
 	public static final ImageIcon NOT_READY_PRESSED_IMAGE = new ImageIcon(getReadyButtonImage(2, 18, 1, true));
 	public static final ImageIcon NOT_READY_DISABLED_IMAGE = new ImageIcon(getReadyButtonImage(2, 18, 0, false));
 
-	private final IJoinGameConnector connector;
+	private final IJoinGameController controller;
 	private final int index;
 	private boolean ready;
-	private EPlayerState state;
+	private ELobbyPlayerState state;
 
 	private final JLabel indexLabel;
 	private final JLabel playerNameLabel;
-	private final JComboBox<ECivilisation> civilisationComboBox;
-	private final JComboBox<PlayerType> typeComboBox;
+	private final JComboBox<ELobbyCivilisation> civilisationComboBox;
+	private final JComboBox<ELobbyPlayerType> typeComboBox;
 	private final JComboBox<Integer> teamComboBox;
 	private final JButton readyButton;
 
-	public PlayerSlot(IJoinGameConnector connector, int index, int totalSlots, PlayerType[] playerTypes) {
-		this.connector = connector;
+	public PlayerSlot(IJoinGameController controller, int index, int totalSlots, ELobbyPlayerType[] playerTypes) {
+		this.controller = controller;
 		this.index = index;
 
 		// components
@@ -83,13 +85,13 @@ public class PlayerSlot {
 		civilisationComboBox.putClientProperty(ELFStyle.KEY, ELFStyle.COMBOBOX);
 
 		// init
-		for (ECivilisation civilisation : ECivilisation.values()) {
+		for (ELobbyCivilisation civilisation : ELobbyCivilisation.values()) {
 			civilisationComboBox.addItem(civilisation);
 		}
 		for (int i = 1; i < totalSlots + 1; i++) {
 			teamComboBox.addItem(i);
 		}
-		for (PlayerType playerType : playerTypes) {
+		for (ELobbyPlayerType playerType : playerTypes) {
 			this.typeComboBox.addItem(playerType);
 		}
 
@@ -145,10 +147,10 @@ public class PlayerSlot {
 	}
 
 	private void sendPlayerUpdate() {
-		connector.updatePlayer(index, getPlayerType(), getCivilisation(), getTeam(), isReady());
+		controller.updatePlayer(index, getPlayerType(), getCivilisation(), getTeam(), isReady());
 	}
 
-	public EPlayerState getState() {
+	public ELobbyPlayerState getState() {
 		return state;
 	}
 
@@ -160,19 +162,19 @@ public class PlayerSlot {
 		return teamComboBox.getSelectedIndex() + 1;
 	}
 
-	public PlayerType getPlayerType() {
-		return (PlayerType) typeComboBox.getSelectedItem();
+	public ELobbyPlayerType getPlayerType() {
+		return (ELobbyPlayerType) typeComboBox.getSelectedItem();
 	}
 
-	public ECivilisation getCivilisation() {
-		return (ECivilisation) civilisationComboBox.getSelectedItem();
+	public ELobbyCivilisation getCivilisation() {
+		return (ELobbyCivilisation) civilisationComboBox.getSelectedItem();
 	}
 
 	public boolean isReady() {
 		return ready;
 	}
 
-	public void setState(EPlayerState state) {
+	public void setState(ELobbyPlayerState state) {
 		this.state = state;
 	}
 
@@ -185,7 +187,7 @@ public class PlayerSlot {
 		if (getPlayerType().isEmpty()) {
 			playerNameLabel.setText("...");
 		} else if (getPlayerType().isAi()) {
-			ECivilisation civilisation = getCivilisation();
+			ELobbyCivilisation civilisation = getCivilisation();
 			if (civilisation != null) {
 				playerNameLabel.setText(Labels.getString("player-name-" + getCivilisation().name() + "-" + getPlayerType().name()));
 			} else {
@@ -198,7 +200,7 @@ public class PlayerSlot {
 		if (team == 0) {
 			throw new IllegalArgumentException("Team can not be less then 1");
 		}
-		SwingUtils.set(teamComboBox, () -> teamComboBox.setSelectedIndex(team - 1));
+		JSettlersSwingUtil.set(teamComboBox, () -> teamComboBox.setSelectedIndex(team - 1));
 	}
 
 	public void setReady(boolean ready) {
@@ -214,22 +216,22 @@ public class PlayerSlot {
 		}
 	}
 
-	public void setCivilisation(ECivilisation civilisation) {
+	public void setCivilisation(ELobbyCivilisation civilisation) {
 		for (int i = 0; i < civilisationComboBox.getItemCount(); i++) {
 			if (civilisationComboBox.getItemAt(i) == civilisation) {
 				final int index = i;
-				SwingUtils.set(civilisationComboBox, () -> civilisationComboBox.setSelectedIndex(index));
+				JSettlersSwingUtil.set(civilisationComboBox, () -> civilisationComboBox.setSelectedIndex(index));
 				updatePlayerName();
 				break;
 			}
 		}
 	}
 
-	public void setPlayerType(PlayerType playerType) {
+	public void setPlayerType(ELobbyPlayerType playerType) {
 		for (int i = 0; i < typeComboBox.getItemCount(); i++) {
 			if (typeComboBox.getItemAt(i) == playerType) {
 				final int index = i;
-				SwingUtils.set(typeComboBox, () -> typeComboBox.setSelectedIndex(index));
+				JSettlersSwingUtil.set(typeComboBox, () -> typeComboBox.setSelectedIndex(index));
 				updatePlayerName();
 				if (playerType.isAi()) {
 					setReady(true);

@@ -146,7 +146,7 @@ public class ServerEntry implements Cloneable {
 			connection = new HTTPConnection(url, log);
 			break;
 		case JSETTLERS:
-			connection = new MultiplayerConnector(address, uuid, username, log);
+			connection = new MultiplayerConnector(address, uuid, username);
 			break;
 		}
 	}

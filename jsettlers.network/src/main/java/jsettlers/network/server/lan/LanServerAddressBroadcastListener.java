@@ -38,14 +38,14 @@ public final class LanServerAddressBroadcastListener extends Thread {
 	private boolean canceled;
 	private DatagramSocket socket;
 
+	public LanServerAddressBroadcastListener() {
+		this(null);
+	}
+
 	public LanServerAddressBroadcastListener(ILanServerAddressListener listener) {
 		super("LanServerAddressListener");
 		this.listener = listener;
 		super.setDaemon(true);
-	}
-
-	public LanServerAddressBroadcastListener() {
-		this(null);
 	}
 
 	@Override
@@ -55,9 +55,10 @@ public final class LanServerAddressBroadcastListener extends Thread {
 
 			while (!foundServer && !canceled) {
 				try {
-					DatagramPacket packet = new DatagramPacket(new byte[NetworkConstants.Server.BROADCAST_BUFFER_LENGTH],
-							NetworkConstants.Server.BROADCAST_BUFFER_LENGTH);
+					byte[] buffer = new byte[NetworkConstants.Server.BROADCAST_BUFFER_LENGTH];
+					DatagramPacket packet = new DatagramPacket(buffer, buffer.length);
 
+					System.out.println("Receive " + socket.getLocalPort());
 					socket.receive(packet);
 
 					String receivedMessage = new String(packet.getData(), packet.getOffset(), packet.getLength());
