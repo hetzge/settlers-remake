@@ -16,7 +16,7 @@ package jsettlers.network.client.time;
 
 import java.util.TimerTask;
 
-import jsettlers.network.NetworkConstants;
+import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.common.packets.TimeSyncPacket;
 import jsettlers.network.infrastructure.channel.AsyncChannel;
 
@@ -40,7 +40,7 @@ public class TimeSyncSenderTimerTask extends TimerTask {
 		int localTime = clock.getTime();
 		int expectedTimeAtServer = localTime + channel.getRoundTripTime().getRtt() / 2;
 
-		channel.sendPacketAsync(NetworkConstants.ENetworkKey.TIME_SYNC, new TimeSyncPacket(expectedTimeAtServer));
+		channel.sendPacketAsync(ENetworkKey.TIME_SYNC, new TimeSyncPacket(expectedTimeAtServer));
 	}
 
 }

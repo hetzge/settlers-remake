@@ -44,7 +44,6 @@ public class TimeSynchronizationListener extends PacketChannelListener<TimeSyncP
 	protected void receivePacket(ENetworkKey key, TimeSyncPacket packet) throws IOException {
 		int expectedRemoteTime = packet.getTime() + rttSupplier.getRoundTripTime().getRtt() / 2;
 		int localTime = clock.getTime();
-
 		int deltaTime = localTime - expectedRemoteTime;
 
 		if (deltaTime > Client.TIME_SYNC_TOLERATED_DIFFERENCE) {

@@ -18,9 +18,15 @@ public interface IJoinGameController {
 
 	PlayerSlot createPlayerSlot(int index);
 
-	void updatePlayer(int index, ELobbyPlayerType playerType, ELobbyCivilisation civilisation, int team, boolean ready);
-
 	void updateMatch(Duration peaceTime, ResourceAmount startResources);
 
 	void sendChatMessage(String message);
+
+	void updatePlayerType(int playerIndex, ELobbyPlayerType playerType);
+
+	void updatePlayerCivilisation(int playerIndex, ELobbyCivilisation civilisation);
+
+	void updatePlayerTeam(int playerIndex, int team);
+
+	void updatePlayerReady(int playerIndex, boolean ready);
 }

@@ -57,7 +57,9 @@ public class NetworkClientClockMock implements INetworkClientClock {
 
 	@Override
 	public void pauseClockFor(int timeDelta) {
+		System.out.println("Pause before: " + time);
 		time -= timeDelta;
+		System.out.println("Pause after: " + time);
 		adjustmentEvents.add(timeDelta);
 	}
 

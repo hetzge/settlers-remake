@@ -14,7 +14,10 @@
  *******************************************************************************/
 package jsettlers.network.client;
 
+import java.util.Arrays;
+import java.util.List;
 import java.util.Timer;
+import java.util.function.Consumer;
 
 import jsettlers.network.NetworkConstants;
 import jsettlers.network.NetworkConstants.ENetworkKey;
@@ -34,15 +37,18 @@ import jsettlers.network.common.packets.PlayerInfoPacket;
 import jsettlers.network.infrastructure.channel.AsyncChannel;
 import jsettlers.network.infrastructure.channel.GenericDeserializer;
 import jsettlers.network.infrastructure.channel.IChannelListener;
+import jsettlers.network.infrastructure.channel.listeners.SimpleListener;
 import jsettlers.network.infrastructure.channel.packet.EmptyPacket;
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
+import jsettlers.network.server.lobby.core.ELobbyCivilisation;
+import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
-import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.UserId;
+import jsettlers.network.server.lobby.network.MatchArrayPacket;
 import jsettlers.network.server.lobby.network.MatchPacket;
-import jsettlers.network.server.lobby.network.PlayerPacket;
+import jsettlers.network.server.lobby.network.UpdatePlayerPacket;
 import jsettlers.network.synchronic.timer.NetworkTimer;
 
 /**
@@ -98,6 +104,14 @@ public class NetworkClient implements ITaskScheduler, INetworkClient {
 	// MATCH
 
 	@Override
+	public void queryMatches(Consumer<List<Match>> callback) {
+		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_MATCHES, MatchArrayPacket.class, packet -> {
+			callback.accept(Arrays.asList(packet.getMatches()));
+		}));
+		channel.sendPacketAsync(ENetworkKey.QUERY_MATCHES, new BooleanMessagePacket(true));
+	}
+
+	@Override
 	public void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo) {
 		channel.sendPacketAsync(ENetworkKey.REQUEST_OPEN_NEW_MATCH, new OpenNewMatchPacket(matchName, maxPlayers, mapInfo, 0L));
 	}
@@ -123,8 +137,23 @@ public class NetworkClient implements ITaskScheduler, INetworkClient {
 	}
 
 	@Override
-	public void updatePlayer(Player player) {
-		channel.sendPacket(ENetworkKey.UPDATE_PLAYER, new PlayerPacket(player));
+	public void updatePlayerType(int playerIndex, ELobbyPlayerType playerType) {
+		channel.sendPacket(ENetworkKey.UPDATE_PLAYER_TYPE, new UpdatePlayerPacket(playerIndex, playerType.ordinal()));
+	}
+
+	@Override
+	public void updatePlayerCivilisation(int playerIndex, ELobbyCivilisation civilisation) {
+		channel.sendPacket(ENetworkKey.UPDATE_PLAYER_CIVILISATION, new UpdatePlayerPacket(playerIndex, civilisation.ordinal()));
+	}
+
+	@Override
+	public void updatePlayerTeam(int playerIndex, int team) {
+		channel.sendPacket(ENetworkKey.UPDATE_PLAYER_TEAM, new UpdatePlayerPacket(playerIndex, team));
+	}
+
+	@Override
+	public void updatePlayerReady(int playerIndex, boolean ready) {
+		channel.sendPacket(ENetworkKey.UPDATE_PLAYER_READY, new UpdatePlayerPacket(playerIndex, ready));
 	}
 
 	// INGAME

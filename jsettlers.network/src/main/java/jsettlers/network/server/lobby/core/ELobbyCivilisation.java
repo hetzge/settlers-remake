@@ -5,4 +5,6 @@ public enum ELobbyCivilisation {
 	EGYPTIAN,
 	ASIAN,
 	AMAZON;
+	
+	public static final ELobbyCivilisation[] VALUES = values();
 }

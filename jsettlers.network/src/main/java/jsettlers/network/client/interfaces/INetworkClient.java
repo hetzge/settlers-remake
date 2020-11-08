@@ -15,15 +15,18 @@
 package jsettlers.network.client.interfaces;
 
 import java.io.Closeable;
+import java.util.List;
+import java.util.function.Consumer;
 
 import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.client.receiver.IPacketReceiver;
 import jsettlers.network.common.packets.MapInfoPacket;
 import jsettlers.network.infrastructure.channel.IChannelListener;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
+import jsettlers.network.server.lobby.core.ELobbyCivilisation;
+import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
-import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.UserId;
 
 /**
@@ -44,6 +47,8 @@ public interface INetworkClient extends Closeable {
 
 	// MATCH
 
+	void queryMatches(Consumer<List<Match>> callback);
+
 	void openNewMatch(String matchName, int maxPlayers, MapInfoPacket mapInfo);
 
 	void joinMatch(MatchId matchId);
@@ -54,7 +59,13 @@ public interface INetworkClient extends Closeable {
 
 	void updateMatch(Match match);
 
-	void updatePlayer(Player player);
+	void updatePlayerType(int playerType, ELobbyPlayerType playerType2);
+
+	void updatePlayerCivilisation(int playerType, ELobbyCivilisation civilisation);
+
+	void updatePlayerTeam(int playerType, int team);
+
+	void updatePlayerReady(int playerType, boolean ready);
 
 	// INGAME
 

@@ -76,7 +76,19 @@ public final class SingleplayerJoinGameController implements IJoinGameController
 	}
 
 	@Override
-	public void updatePlayer(int index, ELobbyPlayerType playerType, ELobbyCivilisation civilisation, int team, boolean ready) {
+	public void updatePlayerType(int playerIndex, ELobbyPlayerType playerType) {
+	}
+
+	@Override
+	public void updatePlayerCivilisation(int playerIndex, ELobbyCivilisation civilisation) {
+	}
+
+	@Override
+	public void updatePlayerTeam(int playerIndex, int team) {
+	}
+
+	@Override
+	public void updatePlayerReady(int playerIndex, boolean ready) {
 	}
 
 	@Override
@@ -86,4 +98,5 @@ public final class SingleplayerJoinGameController implements IJoinGameController
 	@Override
 	public void sendChatMessage(String message) {
 	}
+
 }

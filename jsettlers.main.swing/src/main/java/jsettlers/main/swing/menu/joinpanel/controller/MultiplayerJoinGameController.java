@@ -178,8 +178,23 @@ public final class MultiplayerJoinGameController implements IJoinGameController 
 	}
 
 	@Override
-	public void updatePlayer(int index, ELobbyPlayerType playerType, ELobbyCivilisation civilisation, int team, boolean ready) {
-		this.client.updatePlayer(new Player(index, "", null, ELobbyPlayerState.UNKNOWN, civilisation, playerType, team, ready));
+	public void updatePlayerType(int playerIndex, ELobbyPlayerType playerType) {
+		this.client.updatePlayerType(playerIndex, playerType);
+	}
+
+	@Override
+	public void updatePlayerCivilisation(int playerIndex, ELobbyCivilisation civilisation) {
+		this.client.updatePlayerCivilisation(playerIndex, civilisation);
+	}
+
+	@Override
+	public void updatePlayerTeam(int playerIndex, int team) {
+		this.client.updatePlayerTeam(playerIndex, team);
+	}
+
+	@Override
+	public void updatePlayerReady(int playerIndex, boolean ready) {
+		this.client.updatePlayerReady(playerIndex, ready);
 	}
 
 	@Override

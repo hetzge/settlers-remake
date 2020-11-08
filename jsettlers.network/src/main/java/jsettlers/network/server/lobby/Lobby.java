@@ -1,16 +1,18 @@
 package jsettlers.network.server.lobby;
 
 import java.time.Duration;
+import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
-import jsettlers.common.player.ECivilisation;
 import jsettlers.network.NetworkConstants;
 import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.common.packets.BooleanMessagePacket;
@@ -19,13 +21,14 @@ import jsettlers.network.common.packets.TimeSyncPacket;
 import jsettlers.network.infrastructure.channel.Channel;
 import jsettlers.network.infrastructure.channel.packet.Packet;
 import jsettlers.network.infrastructure.log.LoggerManager;
+import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerState;
+import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.MatchState;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.ResourceAmount;
 import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
@@ -42,6 +45,7 @@ public final class Lobby {
 	// TODO lockstep ?!
 	// TODO poll open games
 	// TODO AsnycNetworkClientConnector ... setState(AsyncNetworkClientFactoryState.CONNECTED_TO_SERVER);
+	// TODO ready state via ELobbyPlayerState
 
 	private final LobbyDb db;
 	private final Map<MatchId, TaskSendingTimerTask> timerTaskByMatchId;
@@ -49,7 +53,7 @@ public final class Lobby {
 	public Lobby() {
 		this(new LobbyDb());
 	}
-	
+
 	public Lobby(LobbyDb db) {
 		this.db = db;
 		this.timerTaskByMatchId = new ConcurrentHashMap<>();
@@ -79,7 +83,7 @@ public final class Lobby {
 		System.out.println("Lobby.createMatch(" + userId + ", " + matchName + ", " + levelId + ", " + maxPlayers + ")");
 		final MatchId matchId = MatchId.generate();
 		final List<Player> players = IntStream.range(0, maxPlayers)
-				.mapToObj(i -> new Player(i, "Player-" + i, null, ELobbyPlayerState.UNKNOWN, ECivilisation.ROMAN, ELobbyPlayerType.EMPTY, i + 1, false)).collect(Collectors.toList());
+				.mapToObj(i -> new Player(i, "Player-" + i, null, ELobbyPlayerState.UNKNOWN, ELobbyCivilisation.ROMAN, ELobbyPlayerType.EMPTY, i + 1, false)).collect(Collectors.toList());
 		final Match match = new Match(matchId, matchName, levelId, players, ResourceAmount.HIGH, Duration.ZERO, MatchState.OPENED);
 		db.setMatch(match);
 		joinMatch(userId, matchId);
@@ -161,7 +165,7 @@ public final class Lobby {
 		}
 		final TaskCollectingListener taskCollectingListener = new TaskCollectingListener();
 		final TaskSendingTimerTask taskSendingTimerTask = new TaskSendingTimerTask(match.createLogger(), taskCollectingListener, packet -> {
-			sendMatchPacket(match, ENetworkKey.SYNCHRONOUS_TASK, packet);
+			sendMatchPacket(match, ENetworkKey.SYNCHRONOUS_TASK, packet, Collections.emptySet());
 		});
 		timer.schedule(taskSendingTimerTask, NetworkConstants.Client.LOCKSTEP_PERIOD, NetworkConstants.Client.LOCKSTEP_PERIOD / 2 - 2);
 		timerTaskByMatchId.put(match.getId(), taskSendingTimerTask);
@@ -202,40 +206,59 @@ public final class Lobby {
 		});
 	}
 
-	public void update(UserId userId, Player updatePlayer) {
-		final Match existingMatch = db.getActiveMatch(userId);
+	public void updatePlayerType(UserId userId, int playerIndex, ELobbyPlayerType playerType) {
 		final Player currentPlayer = db.getPlayer(userId);
-		System.out.println("Lobby.update(" + userId + ", " + updatePlayer + ")");
-		if (currentPlayer.getIndex() == updatePlayer.getIndex() || currentPlayer.isHost()) {
-			final Player player = db.getActiveMatch(userId).getPlayer(updatePlayer.getIndex());
-
-			player.setCivilisation(updatePlayer.getCivilisation());
-			player.setTeam(updatePlayer.getTeam());
-
-			if (player.getType() != updatePlayer.getType() && updatePlayer.getType().isHuman()) {
-				player.setReady(false);
-			} else if (updatePlayer.getType() == ELobbyPlayerType.EMPTY) {
-				player.setReady(false);
-			} else if (updatePlayer.getType() == ELobbyPlayerType.NONE) {
-				player.setReady(true);
-			} else if (updatePlayer.getType().isAi()) {
-				player.setReady(true);
-			} else {
-				player.setReady(updatePlayer.isReady());
-			}
-
-			if (player.getType() != updatePlayer.getType() && updatePlayer.getType() == ELobbyPlayerType.HUMAN) {
+		final Match match = db.getActiveMatch(userId);
+		final Player player = match.getPlayer(playerIndex);
+		if (currentPlayer.isHost() || currentPlayer.equals(player)) {
+			if (player.getType() != playerType && playerType == ELobbyPlayerType.HUMAN) {
 				player.setType(ELobbyPlayerType.EMPTY);
 			} else {
-				player.setType(updatePlayer.getType());
+				player.setType(playerType);
 			}
-
+			// user leaves match if set to non human
 			if (!player.getType().isHuman()) {
-				// user leaves match if set to non human
 				player.getUserId().ifPresent(this::leaveMatch);
 			}
+			sendPlayerUpdate(match, player);
+		}
+	}
 
-			sendPlayerUpdate(existingMatch, player);
+	public void updatePlayerReady(UserId userId, int playerIndex, boolean ready) {
+		final Player currentPlayer = db.getPlayer(userId);
+		final Match match = db.getActiveMatch(userId);
+		final Player player = match.getPlayer(playerIndex);
+		if (currentPlayer.isHost() || currentPlayer.equals(player)) {
+			if (player.getType() == ELobbyPlayerType.EMPTY) {
+				player.setReady(false);
+			} else if (player.getType() == ELobbyPlayerType.NONE) {
+				player.setReady(true);
+			} else if (player.getType().isAi()) {
+				player.setReady(true);
+			} else {
+				player.setReady(ready);
+			}
+			sendPlayerUpdate(match, player);
+		}
+	}
+
+	public void updatePlayerCivilisation(UserId userId, int playerIndex, ELobbyCivilisation civilisation) {
+		final Player currentPlayer = db.getPlayer(userId);
+		final Match match = db.getActiveMatch(userId);
+		final Player player = match.getPlayer(playerIndex);
+		if (currentPlayer.isHost() || currentPlayer.equals(player)) {
+			player.setCivilisation(civilisation);
+			sendPlayerUpdate(match, player);
+		}
+	}
+
+	public void updatePlayerTeam(UserId userId, int playerIndex, int team) {
+		final Player currentPlayer = db.getPlayer(userId);
+		final Match match = db.getActiveMatch(userId);
+		final Player player = match.getPlayer(playerIndex);
+		if (currentPlayer.isHost() || currentPlayer.equals(player)) {
+			player.setTeam(team);
+			sendPlayerUpdate(match, player);
 		}
 	}
 
@@ -257,13 +280,6 @@ public final class Lobby {
 		}
 	}
 
-	public void sendMatches() {
-		final MatchArrayPacket packet = getMatchArrayPacket();
-		for (User user : db.getUsers()) {
-			user.getChannel().sendPacket(ENetworkKey.UPDATE_MATCHES, packet);
-		}
-	}
-
 	public void sendMatches(UserId userId) {
 		final User user = db.getUser(userId);
 		user.getChannel().sendPacket(ENetworkKey.UPDATE_MATCHES, getMatchArrayPacket());
@@ -278,12 +294,14 @@ public final class Lobby {
 	public void sendMatchChatMessage(UserId authorUserId, String message) {
 		System.out.println("Lobby.sendMatchChatMessage(" + authorUserId + ", " + message + ")");
 		final Match match = db.getActiveMatch(authorUserId);
-		sendMatchPacket(match, ENetworkKey.CHAT_MESSAGE, new ChatMessagePacket(authorUserId.getValue(), message));
+		sendMatchPacket(match, ENetworkKey.CHAT_MESSAGE, new ChatMessagePacket(authorUserId.getValue(), message), Collections.emptySet());
 	}
 
 	public void sendMatchTimeSync(UserId userId, TimeSyncPacket packet) {
 		final Match match = db.getActiveMatch(userId);
-		sendMatchPacket(match, NetworkConstants.ENetworkKey.TIME_SYNC, packet);
+		final Set<UserId> exclude = new HashSet<>();
+		exclude.add(userId);
+		sendMatchPacket(match, NetworkConstants.ENetworkKey.TIME_SYNC, packet, exclude);
 		timerTaskByMatchId.get(match.getId()).receivedLockstepAcknowledge(packet.getTime() / NetworkConstants.Client.LOCKSTEP_PERIOD);
 	}
 
@@ -291,10 +309,13 @@ public final class Lobby {
 		db.getUser(userId).getChannel().sendPacket(ENetworkKey.KICK_USER, new BooleanMessagePacket(true));
 	}
 
-	private void sendMatchPacket(Match match, ENetworkKey networkKey, Packet packet) {
+	private void sendMatchPacket(Match match, ENetworkKey networkKey, Packet packet, Set<UserId> exclude) {
 		for (UserId userId : match.getUserIds()) {
-			final User user = db.getUser(userId);
-			user.getChannel().sendPacket(networkKey, packet);
+			if (!exclude.contains(userId)) {
+				final User user = db.getUser(userId);
+				user.getChannel().sendPacket(networkKey, packet);
+				System.out.println("send " + userId + " " + packet + " " + exclude);
+			}
 		}
 	}
 }

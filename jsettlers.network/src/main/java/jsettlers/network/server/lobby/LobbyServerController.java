@@ -12,12 +12,14 @@ import jsettlers.network.common.packets.TimeSyncPacket;
 import jsettlers.network.infrastructure.channel.Channel;
 import jsettlers.network.infrastructure.channel.listeners.SimpleListener;
 import jsettlers.network.infrastructure.channel.packet.EmptyPacket;
+import jsettlers.network.server.lobby.core.ELobbyCivilisation;
+import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchPacket;
-import jsettlers.network.server.lobby.network.PlayerPacket;
+import jsettlers.network.server.lobby.network.UpdatePlayerPacket;
 
 public final class LobbyServerController {
 
@@ -44,11 +46,14 @@ public final class LobbyServerController {
 		}));
 	}
 
-	private void setup(User user) {
+	void setup(User user) {
 		final Channel channel = user.getChannel();
 		channel.setChannelClosedListener(() -> {
 			lobby.leave(user.getId());
 		});
+		channel.registerListener(new SimpleListener<>(ENetworkKey.QUERY_MATCHES, BooleanMessagePacket.class, packet -> {
+			lobby.sendMatches(user.getId());
+		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.REQUEST_OPEN_NEW_MATCH, OpenNewMatchPacket.class, packet -> {
 			lobby.createMatch(user.getId(), packet.getMatchName(), new LevelId(packet.getMapInfo().getId()), packet.getMaxPlayers());
 		}));
@@ -67,8 +72,17 @@ public final class LobbyServerController {
 		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_MATCH, MatchPacket.class, packet -> {
 			lobby.update(user.getId(), packet.getMatch());
 		}));
-		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER, PlayerPacket.class, packet -> {
-			lobby.update(user.getId(), packet.getPlayer());
+		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER_TYPE, UpdatePlayerPacket.class, packet -> {
+			lobby.updatePlayerType(user.getId(), packet.getIntegerValue(), ELobbyPlayerType.VALUES[packet.getIntegerValue()]);
+		}));
+		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER_CIVILISATION, UpdatePlayerPacket.class, packet -> {
+			lobby.updatePlayerCivilisation(user.getId(), packet.getIntegerValue(), ELobbyCivilisation.VALUES[packet.getIntegerValue()]);
+		}));
+		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER_TEAM, UpdatePlayerPacket.class, packet -> {
+			lobby.updatePlayerTeam(user.getId(), packet.getIntegerValue(), packet.getIntegerValue());
+		}));
+		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER_READY, UpdatePlayerPacket.class, packet -> {
+			lobby.updatePlayerReady(user.getId(), packet.getIntegerValue(), packet.getBooleanValue());
 		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.TIME_SYNC, TimeSyncPacket.class, packet -> {
 			lobby.sendMatchTimeSync(user.getId(), packet);

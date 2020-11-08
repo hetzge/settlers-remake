@@ -41,11 +41,10 @@ public class TimeSyncPacket extends Packet {
 		time = dis.readInt();
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#hashCode()
-	 */
+	public int getTime() {
+		return time;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -54,11 +53,6 @@ public class TimeSyncPacket extends Packet {
 		return result;
 	}
 
-	/*
-	 * (non-Javadoc)
-	 * 
-	 * @see java.lang.Object#equals(java.lang.Object)
-	 */
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj)
@@ -71,7 +65,8 @@ public class TimeSyncPacket extends Packet {
 		return time == other.time;
 	}
 
-	public int getTime() {
-		return time;
+	@Override
+	public String toString() {
+		return String.format("TimeSyncPacket [time=%s]", time);
 	}
 }

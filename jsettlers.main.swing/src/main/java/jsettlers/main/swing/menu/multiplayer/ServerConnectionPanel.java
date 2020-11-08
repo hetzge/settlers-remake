@@ -18,6 +18,7 @@ import java.awt.BorderLayout;
 import java.util.Collections;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.stream.Collectors;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -30,6 +31,7 @@ import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.list.MapList;
 import jsettlers.main.MultiplayerConnector;
+import jsettlers.main.datatypes.JoinableGame;
 import jsettlers.main.swing.JSettlersFrame;
 import jsettlers.main.swing.menu.joinpanel.controller.MultiplayerJoinGameController;
 import jsettlers.main.swing.menu.mainmenu.NetworkGameMapLoader;
@@ -77,11 +79,19 @@ public class ServerConnectionPanel extends JPanel {
 		timer.scheduleAtFixedRate(new TimerTask() {
 			@Override
 			public void run() {
-				getConnector().getNetworkClient().queryMatches(matches -> {
-					
-				});
+				updateMatches();
 			}
 		}, 0L, 3000L);
+	}
+
+	private void updateMatches() {
+		if (newMatch != null) {
+			getConnector().getNetworkClient().queryMatches(matches -> {
+				if (newMatch != null) {
+					newMatch.setMapLoaders(matches.stream().map(JoinableGame::new).map(NetworkGameMapLoader::new).collect(Collectors.toList()));
+				}
+			});
+		}
 	}
 
 	@Override
@@ -118,15 +128,6 @@ public class ServerConnectionPanel extends JPanel {
 
 			joinMatch = new OpenPanel(Collections.emptyList(), this::joinMatch);
 			SwingUtilities.updateComponentTreeUI(joinMatch);
-
-			// TODO
-			// ((IMultiplayerConnector) connection).getJoinableMultiplayerGames()
-			// .setListener(networkGames -> {
-			// List<MapLoader> mapLoaders = stream(networkGames.getItems())
-			// .map(NetworkGameMapLoader::new)
-			// .collect(Collectors.toList());
-			// SwingUtilities.invokeLater(() -> joinMatch.setMapLoaders(mapLoaders));
-			// });
 
 			root.insertTab(Labels.getString("multiplayer-joinmatch-title"), null, joinMatch, null, i + 1);
 		}

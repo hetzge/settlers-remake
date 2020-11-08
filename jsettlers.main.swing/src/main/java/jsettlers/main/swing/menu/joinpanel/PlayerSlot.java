@@ -96,13 +96,21 @@ public class PlayerSlot {
 		}
 
 		// listener
-		typeComboBox.addActionListener(this::onChange);
-		civilisationComboBox.addActionListener(this::onChange);
+		typeComboBox.addActionListener(event -> {
+			updatePlayerName();
+			controller.updatePlayerType(index, getPlayerType());
+		});
+		civilisationComboBox.addActionListener(event -> {
+			updatePlayerName();
+			controller.updatePlayerCivilisation(index, getCivilisation());
+		});
 		readyButton.addActionListener(event -> {
 			setReady(!isReady());
-			this.onChange(event);
+			controller.updatePlayerReady(index, isReady());
 		});
-		teamComboBox.addActionListener(this::onChange);
+		teamComboBox.addActionListener(event -> {
+			controller.updatePlayerTeam(index, getTeam());
+		});
 
 		updatePlayerName();
 	}
@@ -139,15 +147,6 @@ public class PlayerSlot {
 		constraints.gridwidth = 1;
 		constraints.fill = GridBagConstraints.HORIZONTAL;
 		panel.add(readyButton, constraints);
-	}
-
-	private void onChange(ActionEvent event) {
-		sendPlayerUpdate();
-		updatePlayerName();
-	}
-
-	private void sendPlayerUpdate() {
-		controller.updatePlayer(index, getPlayerType(), getCivilisation(), getTeam(), isReady());
 	}
 
 	public ELobbyPlayerState getState() {
