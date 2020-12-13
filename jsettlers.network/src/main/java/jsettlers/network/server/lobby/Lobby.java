@@ -225,6 +225,7 @@ public final class Lobby {
 	}
 
 	public void updatePlayerReady(UserId userId, int playerIndex, boolean ready) {
+		System.out.println("Lobby.updatePlayerReady(" + userId + ", " + playerIndex + ", " + ready + ")");
 		final Player currentPlayer = db.getPlayer(userId);
 		final Match match = db.getActiveMatch(userId);
 		final Player player = match.getPlayer(playerIndex);

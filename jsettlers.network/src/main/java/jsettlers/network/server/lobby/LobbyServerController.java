@@ -82,7 +82,7 @@ public final class LobbyServerController {
 			lobby.updatePlayerTeam(user.getId(), packet.getIntegerValue(), packet.getIntegerValue());
 		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER_READY, UpdatePlayerPacket.class, packet -> {
-			lobby.updatePlayerReady(user.getId(), packet.getIntegerValue(), packet.getBooleanValue());
+			lobby.updatePlayerReady(user.getId(), packet.getPlayerIndex(), packet.getBooleanValue());
 		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.TIME_SYNC, TimeSyncPacket.class, packet -> {
 			lobby.sendMatchTimeSync(user.getId(), packet);
