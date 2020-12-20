@@ -16,6 +16,7 @@ package jsettlers.main.swing;
 
 import java.awt.*;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
 
 import javax.swing.JComboBox;
@@ -80,15 +81,22 @@ public final class JSettlersSwingUtil {
 	 * Set without trigger action listener.
 	 */
 	public static void set(JComboBox<?> component, Runnable runnable) {
-		final ActionListener[] listeners = component.getActionListeners();
-		for (final ActionListener listener : listeners) {
+		final ActionListener[] actionListeners = component.getActionListeners();
+		for (final ActionListener listener : actionListeners) {
 			component.removeActionListener(listener);
+		}
+		final ItemListener[] itemListeners = component.getItemListeners();
+		for (final ItemListener listener : itemListeners) {
+			component.removeItemListener(listener);
 		}
 		try {
 			runnable.run();
 		} finally {
-			for (final ActionListener listener : listeners) {
+			for (final ActionListener listener : actionListeners) {
 				component.addActionListener(listener);
+			}
+			for (final ItemListener listener : itemListeners) {
+				component.addItemListener(listener);
 			}
 		}
 	}
