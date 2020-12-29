@@ -14,16 +14,12 @@
  *******************************************************************************/
 package jsettlers.common.menu;
 
-import jsettlers.network.client.interfaces.INetworkClient;
-
 /**
  * This interface offers the methods that interact with a multiplayer server.
  * 
  * @author Andreas Eberle
  */
 public interface IMultiplayerConnector {
-
-	INetworkClient getNetworkClient();
 
 	/**
 	 *

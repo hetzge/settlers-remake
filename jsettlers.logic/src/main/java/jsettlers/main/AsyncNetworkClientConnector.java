@@ -44,7 +44,7 @@ public class AsyncNetworkClientConnector {
 				try {
 					networkClient = new NetworkClient(new AsyncChannel(serverAddress, NetworkConstants.Server.SERVER_PORT), new UserId(userId));
 					networkClient.registerRejectReceiver(generateRejectReceiver());
-					networkClient.logIn(userName);
+					networkClient.logIn(userName).thenAccept(it -> setState(AsyncNetworkClientFactoryState.CONNECTED_TO_SERVER));
 				} catch (UnknownHostException e) {
 					e.printStackTrace();
 					setState(AsyncNetworkClientFactoryState.FAILED_SERVER_NOT_FOUND);
@@ -102,7 +102,7 @@ public class AsyncNetworkClientConnector {
 		synchronized (lock) {
 			while (state == AsyncNetworkClientFactoryState.CONNECTING_TO_SERVER) {
 				try {
-					lock.wait();
+					lock.wait(5000);
 				} catch (InterruptedException e) {
 				}
 			}

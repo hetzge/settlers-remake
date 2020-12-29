@@ -4,8 +4,8 @@ import java.time.Duration;
 
 import javax.swing.SwingUtilities;
 
+import jsettlers.common.ai.EPlayerType;
 import jsettlers.common.menu.IStartingGame;
-import jsettlers.common.player.ECivilisation;
 import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.player.PlayerSetting;
@@ -16,6 +16,7 @@ import jsettlers.main.swing.menu.joinpanel.PlayerSlot;
 import jsettlers.main.swing.settings.SettingsManager;
 import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
+import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.ResourceAmount;
 
 public final class SingleplayerJoinGameController implements IJoinGameController {
@@ -51,17 +52,32 @@ public final class SingleplayerJoinGameController implements IJoinGameController
 	public void start() {
 		final long randomSeed = System.currentTimeMillis();
 		final PlayerSetting[] playerSettings = panel.getPlayerSettings();
-		final JSettlersGame game = new JSettlersGame(mapLoader, randomSeed, (byte) 0, playerSettings);
+		final byte playerId = firstHumanPlayerId(playerSettings);
+		final JSettlersGame game = new JSettlersGame(mapLoader, randomSeed, playerId, playerSettings);
 		final IStartingGame startingGame = game.start();
 		settlersFrame.showStartingGamePanel(startingGame);
 	}
 
+	private byte firstHumanPlayerId(final PlayerSetting[] playerSettings) {
+		byte playerId = (byte) 0;
+		for (int i = 0; i < playerSettings.length; i++) {
+			if (playerSettings[i].getPlayerType() == EPlayerType.HUMAN) {
+				return playerId;
+			} else {
+				playerId++;
+			}
+		}
+		return (byte) 0;
+	}
+
 	@Override
-	public PlayerSlot createPlayerSlot(int index) {
+	public PlayerSlot createPlayerSlot(Player player) {
+		final int index = player.getIndex();
 		final ELobbyPlayerType[] playerTypes = index == 0
 				? new ELobbyPlayerType[] {
 						ELobbyPlayerType.HUMAN }
 				: new ELobbyPlayerType[] {
+						ELobbyPlayerType.NONE,
 						ELobbyPlayerType.AI_VERY_HARD,
 						ELobbyPlayerType.AI_HARD,
 						ELobbyPlayerType.AI_EASY,

@@ -34,7 +34,6 @@ import jsettlers.network.common.packets.MapInfoPacket;
 import jsettlers.network.infrastructure.channel.listeners.SimpleListener;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
 import jsettlers.network.server.lobby.core.ELobbyCivilisation;
-import jsettlers.network.server.lobby.core.ELobbyPlayerState;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.Match;
@@ -173,8 +172,8 @@ public final class MultiplayerJoinGameController implements IJoinGameController 
 	}
 
 	@Override
-	public PlayerSlot createPlayerSlot(int index) {
-		return new PlayerSlot(this, index, mapLoader.getMaxPlayers(), ELobbyPlayerType.VALUES);
+	public PlayerSlot createPlayerSlot(Player player) {
+		return new PlayerSlot(this, player.getIndex(), mapLoader.getMaxPlayers(), ELobbyPlayerType.VALUES);
 	}
 
 	@Override
@@ -232,12 +231,14 @@ public final class MultiplayerJoinGameController implements IJoinGameController 
 		final boolean isHost = matchId == null;
 		final CompletableFuture<JoinGamePanel> future = new CompletableFuture<>();
 		client.registerListener(new SimpleListener<>(ENetworkKey.JOIN_MATCH, MatchPacket.class, packet -> {
+			System.out.println("MultiplayerJoinGameController.create() B");
 			client.removeListener(ENetworkKey.JOIN_MATCH);
 			final MultiplayerJoinGameController controller = new MultiplayerJoinGameController(settlersFrame, client, mapLoader, packet.getMatch().getId());
 			future.complete(controller.setup());
 			controller.onMatchUpdate(packet);
 		}));
 		CompletableFuture.runAsync(() -> {
+			System.out.println("MultiplayerJoinGameController.create() A");
 			if (isHost) {
 				final String matchName = mapLoader.getMapName() + "(" + SettingsManager.getInstance().getUserName() + ")";
 				final MapInfoPacket mapInfoPacket = new MapInfoPacket(mapLoader.getMapId(), mapLoader.getMapName(), "", "", mapLoader.getMaxPlayers());

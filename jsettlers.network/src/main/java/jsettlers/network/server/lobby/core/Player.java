@@ -12,9 +12,8 @@ public final class Player {
 	private ELobbyCivilisation civilisation;
 	private ELobbyPlayerType type;
 	private int team;
-	private boolean ready;
 
-	public Player(int index, String name, UserId userId, ELobbyPlayerState state, ELobbyCivilisation civilisation, ELobbyPlayerType type, int team, boolean ready) {
+	public Player(int index, String name, UserId userId, ELobbyPlayerState state, ELobbyCivilisation civilisation, ELobbyPlayerType type, int team) {
 		this.index = index;
 		this.name = name;
 		this.userId = userId;
@@ -22,20 +21,19 @@ public final class Player {
 		this.civilisation = civilisation;
 		this.type = type;
 		this.team = team;
-		this.ready = ready;
 	}
 
 	public void set(Player player) {
 		setCivilisation(player.civilisation);
 		setType(player.type);
-		setReady(player.ready);
+		setState(player.state);
 		setTeam(player.team);
 	}
 
 	public boolean isHost() {
 		return index == 0;
 	}
-	
+
 	public boolean isUser(UserId userId) {
 		return getUserId().filter(userId::equals).isPresent();
 	}
@@ -69,7 +67,7 @@ public final class Player {
 	}
 
 	public boolean isReady() {
-		return ready;
+		return this.state == ELobbyPlayerState.READY;
 	}
 
 	public void setName(String name) {
@@ -97,7 +95,7 @@ public final class Player {
 	}
 
 	public void setReady(boolean ready) {
-		this.ready = ready;
+		this.state = ready ? ELobbyPlayerState.READY : ELobbyPlayerState.UNKNOWN;
 	}
 
 	@Override
@@ -119,6 +117,6 @@ public final class Player {
 
 	@Override
 	public String toString() {
-		return String.format("Player [index=%s, name=%s, userId=%s, state=%s, civilisation=%s, type=%s, team=%s, ready=%s]", index, name, userId, state, civilisation, type, team, ready);
+		return String.format("Player [index=%s, name=%s, userId=%s, state=%s, civilisation=%s, type=%s, team=%s]", index, name, userId, state, civilisation, type, team);
 	}
 }

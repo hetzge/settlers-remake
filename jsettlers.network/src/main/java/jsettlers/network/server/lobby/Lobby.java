@@ -42,10 +42,7 @@ public final class Lobby {
 
 	// TODO error handling
 	// TODO synchronize
-	// TODO lockstep ?!
-	// TODO poll open games
-	// TODO AsnycNetworkClientConnector ... setState(AsyncNetworkClientFactoryState.CONNECTED_TO_SERVER);
-	// TODO ready state via ELobbyPlayerState
+	// TODO control none player via player slot
 
 	private final LobbyDb db;
 	private final Map<MatchId, TaskSendingTimerTask> timerTaskByMatchId;
@@ -83,7 +80,7 @@ public final class Lobby {
 		System.out.println("Lobby.createMatch(" + userId + ", " + matchName + ", " + levelId + ", " + maxPlayers + ")");
 		final MatchId matchId = MatchId.generate();
 		final List<Player> players = IntStream.range(0, maxPlayers)
-				.mapToObj(i -> new Player(i, "Player-" + i, null, ELobbyPlayerState.UNKNOWN, ELobbyCivilisation.ROMAN, ELobbyPlayerType.EMPTY, i + 1, false)).collect(Collectors.toList());
+				.mapToObj(i -> new Player(i, "Player-" + i, null, ELobbyPlayerState.UNKNOWN, ELobbyCivilisation.ROMAN, ELobbyPlayerType.EMPTY, i + 1)).collect(Collectors.toList());
 		final Match match = new Match(matchId, matchName, levelId, players, ResourceAmount.HIGH, Duration.ZERO, MatchState.OPENED);
 		db.setMatch(match);
 		joinMatch(userId, matchId);
@@ -103,7 +100,6 @@ public final class Lobby {
 			player.setUserId(userId);
 			player.setName(user.getUsername());
 			player.setType(ELobbyPlayerType.HUMAN);
-			player.setReady(false);
 			player.setState(ELobbyPlayerState.UNKNOWN);
 			sendMatchUpdate(ENetworkKey.UPDATE_MATCH, match);
 			sendJoinMatch(user, match);
@@ -124,7 +120,6 @@ public final class Lobby {
 				// Update player properties to empty player
 				player.setName("---");
 				player.setType(ELobbyPlayerType.EMPTY);
-				player.setReady(false);
 				player.setUserId(null);
 				player.setState(ELobbyPlayerState.UNKNOWN);
 				sendPlayerUpdate(match, player);
@@ -207,6 +202,7 @@ public final class Lobby {
 	}
 
 	public void updatePlayerType(UserId userId, int playerIndex, ELobbyPlayerType playerType) {
+		System.out.println("Lobby.updatePlayerType(" + userId + ", " + playerIndex + ", " + playerType + ")");
 		final Player currentPlayer = db.getPlayer(userId);
 		final Match match = db.getActiveMatch(userId);
 		final Player player = match.getPlayer(playerIndex);
@@ -216,6 +212,8 @@ public final class Lobby {
 			} else {
 				player.setType(playerType);
 			}
+			// Ai/None players are always ready
+			player.setState((playerType.isAi() || playerType == ELobbyPlayerType.NONE) ? ELobbyPlayerState.READY : ELobbyPlayerState.UNKNOWN);
 			// user leaves match if set to non human
 			if (!player.getType().isHuman()) {
 				player.getUserId().ifPresent(this::leaveMatch);
@@ -315,7 +313,6 @@ public final class Lobby {
 			if (!exclude.contains(userId)) {
 				final User user = db.getUser(userId);
 				user.getChannel().sendPacket(networkKey, packet);
-				System.out.println("send " + userId + " " + packet + " " + exclude);
 			}
 		}
 	}

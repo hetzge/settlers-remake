@@ -43,6 +43,8 @@ public final class LobbyServerController {
 			final User user = new User(new UserId(packet.getId()), packet.getName(), channel);
 			lobby.joinLobby(user);
 			setup(user);
+			// send packet back to client as confirmation
+			channel.sendPacket(ENetworkKey.IDENTIFY_USER, packet);
 		}));
 	}
 
@@ -73,13 +75,13 @@ public final class LobbyServerController {
 			lobby.update(user.getId(), packet.getMatch());
 		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER_TYPE, UpdatePlayerPacket.class, packet -> {
-			lobby.updatePlayerType(user.getId(), packet.getIntegerValue(), ELobbyPlayerType.VALUES[packet.getIntegerValue()]);
+			lobby.updatePlayerType(user.getId(), packet.getPlayerIndex(), ELobbyPlayerType.VALUES[packet.getIntegerValue()]);
 		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER_CIVILISATION, UpdatePlayerPacket.class, packet -> {
-			lobby.updatePlayerCivilisation(user.getId(), packet.getIntegerValue(), ELobbyCivilisation.VALUES[packet.getIntegerValue()]);
+			lobby.updatePlayerCivilisation(user.getId(), packet.getPlayerIndex(), ELobbyCivilisation.VALUES[packet.getIntegerValue()]);
 		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER_TEAM, UpdatePlayerPacket.class, packet -> {
-			lobby.updatePlayerTeam(user.getId(), packet.getIntegerValue(), packet.getIntegerValue());
+			lobby.updatePlayerTeam(user.getId(), packet.getPlayerIndex(), packet.getIntegerValue());
 		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER_READY, UpdatePlayerPacket.class, packet -> {
 			lobby.updatePlayerReady(user.getId(), packet.getPlayerIndex(), packet.getBooleanValue());

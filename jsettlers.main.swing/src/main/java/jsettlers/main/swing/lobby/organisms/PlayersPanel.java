@@ -3,8 +3,6 @@ package jsettlers.main.swing.lobby.organisms;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.Dimension;
-import java.awt.event.ItemEvent;
-import java.awt.event.ItemListener;
 import java.util.Arrays;
 import java.util.Collection;
 
@@ -12,23 +10,28 @@ import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 
 import jsettlers.main.swing.JSettlersSwingUtil;
-import jsettlers.main.swing.lobby.atoms.Button;
 import jsettlers.main.swing.lobby.atoms.ComboBox;
 import jsettlers.main.swing.lobby.atoms.Label;
 import jsettlers.main.swing.lobby.atoms.TextField;
+import jsettlers.main.swing.lobby.atoms.ToggleButton;
 import jsettlers.network.server.lobby.core.ELobbyCivilisation;
-import jsettlers.network.server.lobby.core.ELobbyPlayerState;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.UserId;
 
 public class PlayersPanel extends JPanel {
 
-	public PlayersPanel(Collection<Player> players, PlayersListener listener) {
+	private final Controller controller;
+
+	public PlayersPanel(Controller controller) {
+		this.controller = controller;
 		setLayout(new BoxLayout(this, BoxLayout.Y_AXIS));
+	}
+
+	public void setPlayers(Collection<Player> players) {
+		removeAll();
 		add(new PlayerHeaderPanel());
 		for (Player player : players) {
-			add(new PlayerPanel(player, listener));
+			add(new PlayerPanel(player, controller));
 		}
 	}
 
@@ -37,11 +40,18 @@ public class PlayersPanel extends JPanel {
 	}
 
 	private void resizeComponents(Container parent) {
+		int i = 0;
 		for (Component component : parent.getComponents()) {
-			final Dimension dimension = new Dimension(120, 40);
+			final Dimension dimension;
+			if (i == 0 || i == 4 || i == 5) {
+				dimension = new Dimension(70, 35);
+			} else {
+				dimension = new Dimension(120, 35);
+			}
 			component.setSize(dimension);
 			component.setPreferredSize(dimension);
 			component.setMaximumSize(dimension);
+			i++;
 		}
 	}
 
@@ -64,9 +74,9 @@ public class PlayersPanel extends JPanel {
 		private final ComboBox<ELobbyPlayerType> typeComboBox;
 		private final ComboBox<Enum<?>> civilisationComboBox;
 		private final TextField teamTextField;
-		private final Button readyButton;
+		private final ToggleButton readyButton;
 
-		public PlayerPanel(Player player, PlayersListener listener) {
+		public PlayerPanel(Player player, Controller controller) {
 			final int index = player.getIndex();
 			setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
 			Arrays.asList(
@@ -75,12 +85,11 @@ public class PlayersPanel extends JPanel {
 					this.typeComboBox = new ComboBox<>(ELobbyPlayerType.VALUES, ELobbyPlayerType.AI_EASY, Enum::name),
 					this.civilisationComboBox = new ComboBox<>(ELobbyCivilisation.VALUES, ELobbyPlayerType.AI_EASY, Enum::name),
 					this.teamTextField = new TextField("0", false),
-					this.readyButton = new Button("???"))
+					this.readyButton = new ToggleButton(player.isReady(), ready -> controller.setReady(index, ready)))
 					.forEach(this::add);
-			this.typeComboBox.addItemListener(event -> listener.setType(index, (ELobbyPlayerType) typeComboBox.getSelectedItem()));
-			this.civilisationComboBox.addItemListener(event -> listener.setCivilisation(index, (ELobbyCivilisation) civilisationComboBox.getSelectedItem()));
-			this.teamTextField.addActionListener(event -> listener.setTeam(index, Integer.parseInt(teamTextField.getText())));
-			this.readyButton.addActionListener(event -> listener.setReady(index, !readyButton.isSelected()));
+			this.typeComboBox.addItemListener(event -> controller.setType(index, (ELobbyPlayerType) typeComboBox.getSelectedItem()));
+			this.civilisationComboBox.addItemListener(event -> controller.setCivilisation(index, (ELobbyCivilisation) civilisationComboBox.getSelectedItem()));
+			this.teamTextField.addActionListener(event -> controller.setTeam(index, Integer.parseInt(teamTextField.getText())));
 			setType(player.getType());
 			setCivilisation(player.getCivilisation());
 			setTeam(player.getTeam());
@@ -93,22 +102,19 @@ public class PlayersPanel extends JPanel {
 		}
 
 		public void setCivilisation(ELobbyCivilisation civilisation) {
-			JSettlersSwingUtil.set(this.typeComboBox, () -> this.civilisationComboBox.setSelectedItem(civilisation));
+			JSettlersSwingUtil.set(this.civilisationComboBox, () -> this.civilisationComboBox.setSelectedItem(civilisation));
 		}
 
 		public void setTeam(int team) {
-			JSettlersSwingUtil.set(this.typeComboBox, () -> this.teamTextField.setText(String.valueOf(team)));
+			JSettlersSwingUtil.set(this.teamTextField, () -> this.teamTextField.setText(String.valueOf(team)));
 		}
 
 		public void setReady(boolean ready) {
-			JSettlersSwingUtil.set(this.typeComboBox, () -> {
-				this.readyButton.setText(ready ? "YES" : "NO");
-				this.readyButton.setSelected(ready);
-			});
+			this.readyButton.setState(ready);
 		}
 	}
 
-	public interface PlayersListener {
+	public interface Controller {
 
 		void setType(int index, ELobbyPlayerType type);
 

@@ -37,7 +37,6 @@ public class MultiplayerConnector implements IMultiplayerConnector, IClientConne
 		this.networkClientFactory = new AsyncNetworkClientConnector(serverAddress, userId, userName);
 	}
 
-	@Override
 	public INetworkClient getNetworkClient() {
 		return networkClientFactory.getNetworkClient();
 	}

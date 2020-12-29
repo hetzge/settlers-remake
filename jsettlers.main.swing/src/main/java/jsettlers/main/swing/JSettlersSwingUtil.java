@@ -19,9 +19,14 @@ import java.awt.event.ActionListener;
 import java.awt.event.ItemListener;
 import java.awt.image.BufferedImage;
 
+import javax.swing.JButton;
 import javax.swing.JComboBox;
+import javax.swing.JSpinner;
 import javax.swing.JTextField;
+import javax.swing.event.ChangeListener;
 
+import jsettlers.graphics.image.SingleImage;
+import jsettlers.graphics.map.draw.ImageProvider;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.newmap.MapFileHeader;
 
@@ -55,6 +60,14 @@ public final class JSettlersSwingUtil {
 		}
 
 		return img;
+	}
+
+	public static Image createImage(int file, int seq, int imagenumber, boolean enabled, int width, int height) {
+		BufferedImage readyImage = ((SingleImage) ImageProvider.getInstance().getSettlerSequence(file, seq).getImage(imagenumber, null)).convertToBufferedImage();
+		if (!enabled) {
+			readyImage = createDisabledImage(readyImage);
+		}
+		return readyImage.getScaledInstance(width, height, Image.SCALE_SMOOTH);
 	}
 
 	public static BufferedImage createDisabledImage(BufferedImage image) {
@@ -114,6 +127,40 @@ public final class JSettlersSwingUtil {
 		} finally {
 			for (final ActionListener listener : listeners) {
 				component.addActionListener(listener);
+			}
+		}
+	}
+
+	/**
+	 * Set without trigger action listener.
+	 */
+	public static void set(JSpinner component, Runnable runnable) {
+		final ChangeListener[] listeners = component.getChangeListeners();
+		for (final ChangeListener listener : listeners) {
+			component.removeChangeListener(listener);
+		}
+		try {
+			runnable.run();
+		} finally {
+			for (final ChangeListener listener : listeners) {
+				component.addChangeListener(listener);
+			}
+		}
+	}
+
+	/**
+	 * Set without trigger action listener.
+	 */
+	public static void set(JButton component, Runnable runnable) {
+		final ChangeListener[] listeners = component.getChangeListeners();
+		for (final ChangeListener listener : listeners) {
+			component.removeChangeListener(listener);
+		}
+		try {
+			runnable.run();
+		} finally {
+			for (final ChangeListener listener : listeners) {
+				component.addChangeListener(listener);
 			}
 		}
 	}

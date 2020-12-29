@@ -34,7 +34,6 @@ public class PlayerPacket extends Packet {
 		dos.writeInt(player.getCivilisation().ordinal());
 		dos.writeInt(player.getType().ordinal());
 		dos.writeInt(player.getTeam());
-		dos.writeBoolean(player.isReady());
 	}
 
 	@Override
@@ -46,8 +45,7 @@ public class PlayerPacket extends Packet {
 				ELobbyPlayerState.VALUES[dis.readInt()],
 				ELobbyCivilisation.VALUES[dis.readInt()],
 				ELobbyPlayerType.VALUES[dis.readInt()],
-				dis.readInt(),
-				dis.readBoolean());
+				dis.readInt());
 	}
 
 	private UserId deserializeUserId(DataInputStream dis) throws IOException {

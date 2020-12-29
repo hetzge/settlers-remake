@@ -68,8 +68,8 @@ public class LobbyServerControllerTest {
 		db.setUser(userB);
 		db.setMatch(new Match(new MatchId("test"), "test", new LevelId("test"),
 				Arrays.asList(
-						new Player(0, userA.getUsername(), userA.getId(), ELobbyPlayerState.UNKNOWN, ELobbyCivilisation.ROMAN, ELobbyPlayerType.HUMAN, 0, true),
-						new Player(1, userB.getUsername(), userB.getId(), ELobbyPlayerState.UNKNOWN, ELobbyCivilisation.ROMAN, ELobbyPlayerType.HUMAN, 0, true)),
+						new Player(0, userA.getUsername(), userA.getId(), ELobbyPlayerState.UNKNOWN, ELobbyCivilisation.ROMAN, ELobbyPlayerType.HUMAN, 0),
+						new Player(1, userB.getUsername(), userB.getId(), ELobbyPlayerState.UNKNOWN, ELobbyCivilisation.ROMAN, ELobbyPlayerType.HUMAN, 0)),
 				ResourceAmount.HIGH, Duration.ofMinutes(0),
 				MatchState.OPENED));
 

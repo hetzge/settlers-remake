@@ -17,6 +17,8 @@ package jsettlers.network.client;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 import jsettlers.network.NetworkConstants;
@@ -92,8 +94,11 @@ public class NetworkClient implements ITaskScheduler, INetworkClient {
 	// LOBBY
 
 	@Override
-	public void logIn(String username) {
+	public CompletableFuture<Void> logIn(String username) {
+		final CompletableFuture<Void> future = new CompletableFuture<Void>();
+		channel.registerListener(new SimpleListener<>(ENetworkKey.IDENTIFY_USER, PlayerInfoPacket.class, packet -> future.complete(null)));
 		channel.sendPacketAsync(ENetworkKey.IDENTIFY_USER, new PlayerInfoPacket(userId.getValue(), username, false));
+		return future;
 	}
 
 	@Override

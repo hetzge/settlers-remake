@@ -41,6 +41,7 @@ import javax.swing.border.EmptyBorder;
 
 import java8.util.J8Arrays;
 import java8.util.Optional;
+import jsettlers.common.ai.EPlayerType;
 import jsettlers.common.player.ECivilisation;
 import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.EMapStartResources;
@@ -84,8 +85,6 @@ public class JoinGamePanel extends BackgroundPanel {
 	private final JPanel settingsPanel = new JPanel();
 	private final JLabel mapNameLabel = new JLabel();
 	private final JLabel mapImage = new JLabel();
-	private final JLabel numberOfPlayersLabel = new JLabel();
-	private final JComboBox<Integer> numberOfPlayersComboBox = new JComboBox<>();
 	private final JLabel peaceTimeLabel = new JLabel();
 	private final JTextField peaceTimeTextField = new JTextField("0");
 	private final JLabel startResourcesLabel = new JLabel();
@@ -132,8 +131,6 @@ public class JoinGamePanel extends BackgroundPanel {
 		mapNameLabel.setHorizontalAlignment(SwingConstants.CENTER);
 		mapPanel.add(mapImage, BorderLayout.CENTER);
 		mapImage.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-		settingsLabelPanel.add(numberOfPlayersLabel);
-		settingsComboBoxPanel.add(numberOfPlayersComboBox);
 		settingsLabelPanel.add(startResourcesLabel);
 		J8Arrays.stream(EMapStartResources.values())
 				.map(MapStartResourcesUIWrapper::new)
@@ -171,7 +168,6 @@ public class JoinGamePanel extends BackgroundPanel {
 
 	private void setStyle() {
 		mapNameLabel.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_LONG);
-		numberOfPlayersLabel.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_SHORT);
 		startResourcesLabel.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_SHORT);
 		peaceTimeLabel.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_SHORT);
 		titleLabel.putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_HEADER);
@@ -185,14 +181,12 @@ public class JoinGamePanel extends BackgroundPanel {
 		chatInputField.putClientProperty(ELFStyle.KEY, ELFStyle.TEXT_DEFAULT);
 		chatArea.putClientProperty(ELFStyle.KEY, ELFStyle.PANEL_DARK);
 		startResourcesComboBox.putClientProperty(ELFStyle.KEY, ELFStyle.COMBOBOX);
-		numberOfPlayersComboBox.putClientProperty(ELFStyle.KEY, ELFStyle.COMBOBOX);
 		peaceTimeTextField.putClientProperty(ELFStyle.KEY, ELFStyle.TEXT_DEFAULT);
 		chatArea.putClientProperty(ELFStyle.KEY, ELFStyle.TEXT_DEFAULT);
 		SwingUtilities.updateComponentTreeUI(this);
 	}
 
 	private void localize() {
-		numberOfPlayersLabel.setText(Labels.getString("join-game-panel-number-of-players"));
 		startResourcesLabel.setText(Labels.getString("join-game-panel-start-resources"));
 		cancelButton.setText(Labels.getString("join-game-panel-cancel"));
 		startGameButton.setText(Labels.getString("join-game-panel-start"));
@@ -205,7 +199,6 @@ public class JoinGamePanel extends BackgroundPanel {
 	}
 
 	private void addListener() {
-		numberOfPlayersComboBox.addActionListener(e -> updateNumberOfPlayerSlots());
 		startResourcesComboBox.addActionListener(e -> controller.updateMatch(getPeaceTime(), getStartResourceAmount()));
 		peaceTimeTextField.addActionListener(e -> controller.updateMatch(getPeaceTime(), getStartResourceAmount()));
 		ActionListener sendChatMessageListener = e -> {
@@ -236,7 +229,6 @@ public class JoinGamePanel extends BackgroundPanel {
 	}
 
 	public void setupHost(boolean isHost) {
-		numberOfPlayersComboBox.setEnabled(isHost);
 		peaceTimeTextField.setEnabled(isHost);
 		startResourcesComboBox.setEnabled(isHost);
 		startGameButton.setVisible(isHost);
@@ -294,7 +286,6 @@ public class JoinGamePanel extends BackgroundPanel {
 	public void setupMap(MapLoader mapLoader) {
 		mapNameLabel.setText(mapLoader.getMapName());
 		mapImage.setIcon(new ImageIcon(JSettlersSwingUtil.createBufferedImageFrom(mapLoader)));
-		resetNumberOfPlayersComboBox(mapLoader);
 		buildPlayerSlots(mapLoader);
 		updateNumberOfPlayerSlots();
 	}
@@ -305,7 +296,7 @@ public class JoinGamePanel extends BackgroundPanel {
 			final ELobbyCivilisation civilisation = Utils.lobby(Optional.ofNullable(playerSettings[i].getCivilisation()).orElse(ECivilisation.ROMAN));
 			final ELobbyPlayerType playerType = Optional.ofNullable(playerSettings[i].getPlayerType()).map(Utils::lobby).orElse(ELobbyPlayerType.AI_EASY);
 			final int team = Optional.ofNullable(playerSettings[i].getTeamId()).map(it -> (int) it).orElse(i + 1);
-			return new Player(i, "Player-" + i, null, ELobbyPlayerState.UNKNOWN, civilisation, playerType, team, false);
+			return new Player(i, "Player-" + i, null, ELobbyPlayerState.READY, civilisation, playerType, team);
 		}).collect(Collectors.toList());
 		buildPlayerSlots(players);
 	}
@@ -314,25 +305,14 @@ public class JoinGamePanel extends BackgroundPanel {
 		playerSlots.clear();
 
 		for (Player player : players) {
-			playerSlots.add(controller.createPlayerSlot(player.getIndex()));
+			playerSlots.add(controller.createPlayerSlot(player));
 		}
 		for (Player player : players) {
 			setupPlayer(player);
 		}
 	}
 
-	private void resetNumberOfPlayersComboBox(MapLoader mapLoader) {
-		numberOfPlayersComboBox.removeAllItems();
-		for (int i = 1; i < mapLoader.getMaxPlayers() + 1; i++) {
-			numberOfPlayersComboBox.addItem(i);
-		}
-		numberOfPlayersComboBox.setSelectedIndex(mapLoader.getMaxPlayers() - 1);
-	}
-
 	private void updateNumberOfPlayerSlots() {
-		if (numberOfPlayersComboBox.getSelectedItem() == null) {
-			return;
-		}
 		playerSlotsPanel.removeAll();
 		addPlayerSlotHeadline();
 		for (int i = 0; i < playerSlots.size(); i++) {
@@ -369,11 +349,8 @@ public class JoinGamePanel extends BackgroundPanel {
 		return playerSlots.stream()
 				.map(playerSlot -> {
 					ELobbyPlayerType playerType = playerSlot.getPlayerType();
-					if (Utils.ingame(playerType) != null) {
-						return new PlayerSetting(Utils.ingame(playerType), Utils.ingame(playerSlot.getCivilisation()), (byte) playerSlot.getTeam());
-					} else {
-						return new PlayerSetting();
-					}
+					EPlayerType ingamePlayerType = Utils.ingame(playerType);
+					return new PlayerSetting(ingamePlayerType != null, ingamePlayerType, Utils.ingame(playerSlot.getCivilisation()), (byte) playerSlot.getTeam());
 				})
 				.toArray(PlayerSetting[]::new);
 	}

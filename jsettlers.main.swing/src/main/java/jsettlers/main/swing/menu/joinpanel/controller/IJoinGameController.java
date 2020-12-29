@@ -6,6 +6,7 @@ import jsettlers.main.swing.menu.joinpanel.JoinGamePanel;
 import jsettlers.main.swing.menu.joinpanel.PlayerSlot;
 import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
+import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.ResourceAmount;
 
 public interface IJoinGameController {
@@ -16,7 +17,7 @@ public interface IJoinGameController {
 
 	void start();
 
-	PlayerSlot createPlayerSlot(int index);
+	PlayerSlot createPlayerSlot(Player player);
 
 	void updateMatch(Duration peaceTime, ResourceAmount startResources);
 

@@ -16,6 +16,8 @@ package jsettlers.network.client.interfaces;
 
 import java.io.Closeable;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 import jsettlers.network.NetworkConstants.ENetworkKey;
@@ -41,7 +43,7 @@ public interface INetworkClient extends Closeable {
 
 	// LOBBY
 
-	void logIn(String username);
+	CompletableFuture<Void> logIn(String username);
 
 	void sendChatMessage(String message);
 
