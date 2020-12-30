@@ -8,12 +8,14 @@ import java.util.Collection;
 
 import javax.swing.BoxLayout;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 
 import jsettlers.main.swing.JSettlersSwingUtil;
 import jsettlers.main.swing.lobby.atoms.ComboBox;
+import jsettlers.main.swing.lobby.atoms.IntegerSpinner;
 import jsettlers.main.swing.lobby.atoms.Label;
 import jsettlers.main.swing.lobby.atoms.TextField;
-import jsettlers.main.swing.lobby.atoms.ToggleButton;
+import jsettlers.main.swing.lobby.atoms.CheckboxButton;
 import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.Player;
@@ -33,6 +35,7 @@ public class PlayersPanel extends JPanel {
 		for (Player player : players) {
 			add(new PlayerPanel(player, controller));
 		}
+		SwingUtilities.updateComponentTreeUI(this);
 	}
 
 	public PlayerPanel getPlayerPanel(int index) {
@@ -73,23 +76,23 @@ public class PlayersPanel extends JPanel {
 		private final TextField playerTextField;
 		private final ComboBox<ELobbyPlayerType> typeComboBox;
 		private final ComboBox<Enum<?>> civilisationComboBox;
-		private final TextField teamTextField;
-		private final ToggleButton readyButton;
+		private final IntegerSpinner teamSpinner;
+		private final CheckboxButton readyButton;
 
 		public PlayerPanel(Player player, Controller controller) {
 			final int index = player.getIndex();
 			setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
 			Arrays.asList(
-					this.indexTextField = new TextField(String.valueOf(index), false),
+					this.indexTextField = new TextField(String.valueOf(index + 1), false),
 					this.playerTextField = new TextField(player.getName(), false),
 					this.typeComboBox = new ComboBox<>(ELobbyPlayerType.VALUES, ELobbyPlayerType.AI_EASY, Enum::name),
 					this.civilisationComboBox = new ComboBox<>(ELobbyCivilisation.VALUES, ELobbyPlayerType.AI_EASY, Enum::name),
-					this.teamTextField = new TextField("0", false),
-					this.readyButton = new ToggleButton(player.isReady(), ready -> controller.setReady(index, ready)))
+					this.teamSpinner = new IntegerSpinner(1, 1, 30, 1),
+					this.readyButton = new CheckboxButton(player.isReady(), ready -> controller.setReady(index, ready)))
 					.forEach(this::add);
 			this.typeComboBox.addItemListener(event -> controller.setType(index, (ELobbyPlayerType) typeComboBox.getSelectedItem()));
 			this.civilisationComboBox.addItemListener(event -> controller.setCivilisation(index, (ELobbyCivilisation) civilisationComboBox.getSelectedItem()));
-			this.teamTextField.addActionListener(event -> controller.setTeam(index, Integer.parseInt(teamTextField.getText())));
+			this.teamSpinner.addChangeListener(event -> controller.setTeam(index, teamSpinner.getIntegerValue()));
 			setType(player.getType());
 			setCivilisation(player.getCivilisation());
 			setTeam(player.getTeam());
@@ -106,11 +109,20 @@ public class PlayersPanel extends JPanel {
 		}
 
 		public void setTeam(int team) {
-			JSettlersSwingUtil.set(this.teamTextField, () -> this.teamTextField.setText(String.valueOf(team)));
+			JSettlersSwingUtil.set(this.teamSpinner, () -> this.teamSpinner.setIntegerValue(team));
 		}
 
 		public void setReady(boolean ready) {
 			this.readyButton.setState(ready);
+		}
+
+		public void setEnabled(boolean enabled) {
+			this.indexTextField.setEnabled(enabled);
+			this.playerTextField.setEnabled(enabled);
+			this.typeComboBox.setEnabled(enabled);
+			this.civilisationComboBox.setEnabled(enabled);
+			this.teamSpinner.setEnabled(enabled);
+			this.readyButton.setEnabled(enabled);
 		}
 	}
 

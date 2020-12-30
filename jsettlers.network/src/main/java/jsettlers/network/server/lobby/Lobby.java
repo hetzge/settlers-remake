@@ -191,6 +191,7 @@ public final class Lobby {
 		});
 	}
 
+	@Deprecated
 	public void update(UserId userId, Match matchUpdate) {
 		final Match existingMatch = db.getMatch(matchUpdate.getId());
 		existingMatch.getPlayer(userId).ifPresent(player -> {
@@ -199,6 +200,22 @@ public final class Lobby {
 			}
 			sendMatchUpdate(ENetworkKey.UPDATE_MATCH, existingMatch.withoutPlayers());
 		});
+	}
+
+	public void updateMatchPeaceTime(UserId userId, int minutes) {
+		final Match match = db.getActiveMatch(userId);
+		final Player player = db.getPlayer(userId);
+		if (player.isHost()) {
+			match.setPeaceTime(Duration.ofMinutes(minutes));
+		}
+	}
+
+	public void updateMatchStartResourceAmount(UserId userId, ResourceAmount amount) {
+		final Match match = db.getActiveMatch(userId);
+		final Player player = db.getPlayer(userId);
+		if (player.isHost()) {
+			match.setResourceAmount(amount);
+		}
 	}
 
 	public void updatePlayerType(UserId userId, int playerIndex, ELobbyPlayerType playerType) {

@@ -198,7 +198,6 @@ public final class MultiplayerJoinGameController implements IJoinGameController 
 
 	@Override
 	public void updateMatch(Duration peaceTime, ResourceAmount startResources) {
-		System.out.println("MultiplayerJoinGameConnector.updateMatch(" + matchId + ")");
 		this.client.updateMatch(new Match(matchId, "", new LevelId(mapLoader.getMapId()), Collections.emptyList(), startResources, peaceTime, MatchState.OPENED));
 	}
 
@@ -231,14 +230,12 @@ public final class MultiplayerJoinGameController implements IJoinGameController 
 		final boolean isHost = matchId == null;
 		final CompletableFuture<JoinGamePanel> future = new CompletableFuture<>();
 		client.registerListener(new SimpleListener<>(ENetworkKey.JOIN_MATCH, MatchPacket.class, packet -> {
-			System.out.println("MultiplayerJoinGameController.create() B");
 			client.removeListener(ENetworkKey.JOIN_MATCH);
 			final MultiplayerJoinGameController controller = new MultiplayerJoinGameController(settlersFrame, client, mapLoader, packet.getMatch().getId());
 			future.complete(controller.setup());
 			controller.onMatchUpdate(packet);
 		}));
 		CompletableFuture.runAsync(() -> {
-			System.out.println("MultiplayerJoinGameController.create() A");
 			if (isHost) {
 				final String matchName = mapLoader.getMapName() + "(" + SettingsManager.getInstance().getUserName() + ")";
 				final MapInfoPacket mapInfoPacket = new MapInfoPacket(mapLoader.getMapId(), mapLoader.getMapName(), "", "", mapLoader.getMaxPlayers());

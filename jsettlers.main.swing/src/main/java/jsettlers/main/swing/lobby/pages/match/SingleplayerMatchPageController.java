@@ -1,32 +1,38 @@
-package jsettlers.main.swing.lobby.pages;
+package jsettlers.main.swing.lobby.pages.match;
 
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import jsettlers.common.menu.IStartingGame;
 import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
-import jsettlers.main.swing.lobby.organisms.MatchSettingsPanel.StartResources;
+import jsettlers.logic.player.PlayerSetting;
+import jsettlers.main.JSettlersGame;
+import jsettlers.main.swing.lobby.Ui;
 import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerState;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.Player;
+import jsettlers.network.server.lobby.core.ResourceAmount;
 import jsettlers.network.server.lobby.core.UserId;
 
 public class SingleplayerMatchPageController implements MatchPagePanel.Controller {
 
+	private final Ui ui;
 	private final MatchPagePanel panel;
 	private final List<Player> players;
 	private final MapLoader mapLoader;
 	private int peaceTimeInMinutes;
-	private StartResources startResources;
+	private ResourceAmount resourceAmount;
 
-	public SingleplayerMatchPageController(MapLoader mapLoader) {
+	public SingleplayerMatchPageController(Ui ui, MapLoader mapLoader) {
+		this.ui = ui;
 		this.mapLoader = mapLoader;
 		this.panel = new MatchPagePanel(this);
 		this.players = createPlayers(mapLoader);
 		this.peaceTimeInMinutes = 0;
-		this.startResources = StartResources.MEDIUM;
+		this.resourceAmount = ResourceAmount.MEDIUM;
 	}
 
 	@Override
@@ -34,15 +40,31 @@ public class SingleplayerMatchPageController implements MatchPagePanel.Controlle
 		this.panel.setTitle(Labels.getString("join-game-panel-new-single-player-game-title"));
 		this.panel.getPlayersPanel().setPlayers(players);
 		this.panel.getMatchSettingsPanel().setPeaceTime(peaceTimeInMinutes);
-		this.panel.getMatchSettingsPanel().setStartResources(startResources);
+		this.panel.getMatchSettingsPanel().setStartResources(resourceAmount);
 		this.panel.getMatchSettingsPanel().setMapInformation(this.mapLoader);
 		this.panel.getChatPanel().setVisible(false);
 		return this.panel;
 	}
 
 	@Override
+	public void cancel() {
+		ui.getFrame().showMainMenu();
+	}
+
+	@Override
 	public void setType(int index, ELobbyPlayerType type) {
 		players.get(index).setType(type);
+		if (type == ELobbyPlayerType.HUMAN) {
+			players.get(index).setName("Player");
+			for (Player player : players) {
+				if (player.getIndex() != index && player.getType() == ELobbyPlayerType.HUMAN) {
+					player.setName("Computer " + player.getIndex());
+					player.setType(ELobbyPlayerType.AI_EASY);
+				}
+			}
+		}
+		// Update ui
+		this.panel.getPlayersPanel().setPlayers(this.players);
 	}
 
 	@Override
@@ -71,13 +93,19 @@ public class SingleplayerMatchPageController implements MatchPagePanel.Controlle
 	}
 
 	@Override
-	public void setStartResources(StartResources resources) {
-		this.startResources = resources;
+	public void setStartResources(ResourceAmount amount) {
+		this.resourceAmount = amount;
 	}
 
 	@Override
 	public void startMatch() {
-		System.out.println("Start match");
+		final long randomSeed = System.currentTimeMillis();
+		final PlayerSetting[] playerSettings = MatchPageUtils.toPlayerSettings(this.players);
+		final byte playerId = (byte) this.players.stream().filter(player -> player.getType() == ELobbyPlayerType.HUMAN).findFirst()
+				.orElseThrow(() -> new IllegalStateException("Can't start single player game without human player")).getIndex();
+		final JSettlersGame game = new JSettlersGame(mapLoader, randomSeed, playerId, playerSettings);
+		final IStartingGame startingGame = game.start();
+		ui.getFrame().showStartingGamePanel(startingGame);
 	}
 
 	private static List<Player> createPlayers(MapLoader mapLoader) {
@@ -88,7 +116,7 @@ public class SingleplayerMatchPageController implements MatchPagePanel.Controlle
 		if (i == 0) {
 			return new Player(i, "Player", new UserId(String.valueOf(i)), ELobbyPlayerState.READY, ELobbyCivilisation.ROMAN, ELobbyPlayerType.HUMAN, i + 1);
 		} else {
-			return new Player(i, "Player-" + i, new UserId(String.valueOf(i)), ELobbyPlayerState.READY, ELobbyCivilisation.ROMAN, ELobbyPlayerType.AI_EASY, i + 1);
+			return new Player(i, "Computer " + i, new UserId(String.valueOf(i)), ELobbyPlayerState.READY, ELobbyCivilisation.ROMAN, ELobbyPlayerType.AI_EASY, i + 1);
 		}
 	}
 }

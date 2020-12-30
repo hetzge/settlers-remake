@@ -1,52 +1,28 @@
 package jsettlers.main.swing.lobby.molecules;
 
-import java.awt.Color;
-import java.awt.Component;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.util.function.Function;
 
 import javax.swing.BoxLayout;
+import javax.swing.ButtonGroup;
 import javax.swing.JPanel;
-import javax.swing.border.LineBorder;
 
-import jsettlers.main.swing.lobby.atoms.Button;
 import jsettlers.main.swing.lobby.atoms.Label;
+import jsettlers.main.swing.lobby.atoms.ToggleButton;
 
 public class ToggleBarPanel<T> extends JPanel {
 
-	private static final LineBorder DISABLED_BORDER = new LineBorder(Color.BLACK);
-	private static final LineBorder ENABLED_BORDER = new LineBorder(Color.RED);
-
-	public ToggleBarPanel(T[] values, T active, Function<T, String> labelFunction, ToggleBarListener<T> listener) {
+	public ToggleBarPanel(String labelText, T[] values, T active, Function<T, String> labelFunction, ToggleBarListener<T> listener) {
 		setLayout(new BoxLayout(this, BoxLayout.X_AXIS));
-		add(new Label("Filter:"));
-		for (T value : values) {
-			final Button button = new Button(labelFunction.apply(value));
-			button.addActionListener(new ToggleButtonActionListener(value, listener));
+		add(new Label(labelText));
+		final ButtonGroup group = new ButtonGroup();
+		for (final T value : values) {
+			final ToggleButton button = new ToggleButton(labelFunction.apply(value));
+			button.addActionListener(event -> listener.onToggle(value));
+			group.add(button);
 			add(button);
-		}
-	}
-
-	private class ToggleButtonActionListener implements ActionListener {
-
-		private final T value;
-		private final ToggleBarListener<T> listener;
-
-		public ToggleButtonActionListener(T value, ToggleBarListener<T> listener) {
-			this.value = value;
-			this.listener = listener;
-		}
-
-		@Override
-		public void actionPerformed(ActionEvent event) {
-			for (Component component : getComponents()) {
-				if (component instanceof Button) {
-					final Button otherButton = (Button) component;
-					otherButton.setBorder(event.getSource() != otherButton ? DISABLED_BORDER : ENABLED_BORDER);
-				}
+			if (value.equals(active)) {
+				button.setSelected(true);
 			}
-			listener.onToggle(value);
 		}
 	}
 

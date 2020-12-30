@@ -1,4 +1,4 @@
-package jsettlers.main.swing.lobby.pages;
+package jsettlers.main.swing.lobby.pages.match;
 
 import java.awt.BorderLayout;
 import java.awt.ComponentOrientation;
@@ -18,12 +18,15 @@ public class MatchPagePanel extends JPanel {
 	private final PlayersPanel playersPanel;
 	private final ChatPanel chatPanel;
 	private final Label titleLabel;
+	private final Button cancelButton;
 	private final Button startButton;
 
 	public MatchPagePanel(Controller controller) {
 		setLayout(new BorderLayout());
 		add(this.titleLabel = new Label("..."), BorderLayout.NORTH);
-		add(this.matchSettingsPanel = new MatchSettingsPanel(controller), BorderLayout.WEST);
+		final JPanel westPanel = new JPanel();
+		westPanel.add(this.matchSettingsPanel = new MatchSettingsPanel(controller), BorderLayout.NORTH);
+		add(westPanel, BorderLayout.WEST);
 		final JPanel centerPanel = new JPanel();
 		centerPanel.setLayout(new BorderLayout());
 		centerPanel.add(this.playersPanel = new PlayersPanel(controller), BorderLayout.NORTH);
@@ -33,7 +36,9 @@ public class MatchPagePanel extends JPanel {
 		southPanel.setLayout(new BoxLayout(southPanel, BoxLayout.LINE_AXIS));
 		southPanel.setComponentOrientation(ComponentOrientation.RIGHT_TO_LEFT);
 		southPanel.add(this.startButton = new Button("Start"));
+		southPanel.add(this.cancelButton = new Button("Cancel"));
 		add(southPanel, BorderLayout.SOUTH);
+		this.cancelButton.addActionListener(event -> controller.cancel());
 		this.startButton.addActionListener(event -> controller.startMatch());
 	}
 
@@ -56,6 +61,8 @@ public class MatchPagePanel extends JPanel {
 	public interface Controller extends PlayersPanel.Controller, ChatPanel.Controller, MatchSettingsPanel.Controller {
 
 		MatchPagePanel init();
+
+		void cancel();
 
 		void startMatch();
 	}

@@ -29,6 +29,7 @@ import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
+import jsettlers.network.server.lobby.core.ResourceAmount;
 import jsettlers.network.server.lobby.core.UserId;
 
 /**
@@ -59,15 +60,20 @@ public interface INetworkClient extends Closeable {
 
 	void startMatch() throws IllegalStateException;
 
+	@Deprecated
 	void updateMatch(Match match);
 
-	void updatePlayerType(int playerType, ELobbyPlayerType playerType2);
+	void updateMatchPeaceTime(int minutes);
 
-	void updatePlayerCivilisation(int playerType, ELobbyCivilisation civilisation);
+	void updateMatchStartResourceAmount(ResourceAmount amount);
 
-	void updatePlayerTeam(int playerType, int team);
+	void updatePlayerType(int index, ELobbyPlayerType playerType);
 
-	void updatePlayerReady(int playerType, boolean ready);
+	void updatePlayerCivilisation(int index, ELobbyCivilisation civilisation);
+
+	void updatePlayerTeam(int index, int team);
+
+	void updatePlayerReady(int index, boolean ready);
 
 	// INGAME
 

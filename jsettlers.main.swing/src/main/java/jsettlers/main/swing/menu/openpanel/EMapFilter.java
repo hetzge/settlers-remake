@@ -47,7 +47,7 @@ public enum EMapFilter {
 	},
 
 	/**
-	 * Mapps imported from Original settler
+	 * Maps imported from Original settler
 	 */
 	SETTLER_IMPORTED {
 		@Override

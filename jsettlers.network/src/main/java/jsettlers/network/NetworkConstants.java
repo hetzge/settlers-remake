@@ -96,8 +96,7 @@ public final class NetworkConstants {
 		INVALID_STATE_ERROR,
 
 		CIVILISATION_CHANGED,
-		TEAM_CHANGED,
-		;
+		TEAM_CHANGED,;
 
 		private static final ENetworkMessage[] values = ENetworkMessage.values();
 		private final byte ordinal;
@@ -153,6 +152,8 @@ public final class NetworkConstants {
 		QUERY_MATCHES,
 		JOIN_MATCH,
 		UPDATE_MATCH,
+		UPDATE_MATCH_PEACE_TIME,
+		UPDATE_MATCH_START_RESOURCE_AMOUNT,
 		UPDATE_MATCHES,
 		UPDATE_PLAYER,
 		UPDATE_PLAYER_TYPE,

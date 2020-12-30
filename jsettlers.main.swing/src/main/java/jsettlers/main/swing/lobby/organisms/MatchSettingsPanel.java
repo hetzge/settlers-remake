@@ -1,13 +1,10 @@
 package jsettlers.main.swing.lobby.organisms;
 
-import java.awt.BorderLayout;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
-import java.awt.GridLayout;
 import java.awt.image.BufferedImage;
 
-import javax.swing.BoxLayout;
 import javax.swing.JPanel;
 
 import jsettlers.logic.map.loading.MapLoader;
@@ -16,11 +13,12 @@ import jsettlers.main.swing.lobby.atoms.ComboBox;
 import jsettlers.main.swing.lobby.atoms.ImagePanel;
 import jsettlers.main.swing.lobby.atoms.IntegerSpinner;
 import jsettlers.main.swing.lobby.atoms.Label;
+import jsettlers.network.server.lobby.core.ResourceAmount;
 
 public class MatchSettingsPanel extends JPanel {
 
 	private final IntegerSpinner peaceTimeIntegerSpinner;
-	private final ComboBox<StartResources> startResourcesDropDown;
+	private final ComboBox<ResourceAmount> startResourcesDropDown;
 	private final Label mapLabel;
 	private final ImagePanel mapImage;
 
@@ -32,10 +30,10 @@ public class MatchSettingsPanel extends JPanel {
 		add(new Label("Peace time"), createConstraints(y++));
 		add(this.peaceTimeIntegerSpinner = new IntegerSpinner(10, 0, 9999, 1), createConstraints(y++));
 		add(new Label("Start resources"), createConstraints(y++));
-		add(this.startResourcesDropDown = new ComboBox<>(StartResources.values(), StartResources.MEDIUM, Enum::name), createConstraints(y++));
+		add(this.startResourcesDropDown = new ComboBox<>(ResourceAmount.values(), ResourceAmount.MEDIUM, Enum::name), createConstraints(y++));
 		this.mapImage.setDimension(new Dimension(300, 150));
 		this.peaceTimeIntegerSpinner.addChangeListener(event -> controller.setPeaceTime(peaceTimeIntegerSpinner.getIntegerValue()));
-		this.startResourcesDropDown.addItemListener(event -> controller.setStartResources((StartResources) event.getItem()));
+		this.startResourcesDropDown.addItemListener(event -> controller.setStartResources((ResourceAmount) event.getItem()));
 	}
 
 	public void setMapInformation(MapLoader loader) {
@@ -51,8 +49,8 @@ public class MatchSettingsPanel extends JPanel {
 		JSettlersSwingUtil.set(this.peaceTimeIntegerSpinner, () -> this.peaceTimeIntegerSpinner.setIntegerValue(minutes));
 	}
 
-	public void setStartResources(StartResources resources) {
-		JSettlersSwingUtil.set(this.startResourcesDropDown, () -> this.startResourcesDropDown.setSelectedItem(resources));
+	public void setStartResources(ResourceAmount amount) {
+		JSettlersSwingUtil.set(this.startResourcesDropDown, () -> this.startResourcesDropDown.setSelectedItem(amount));
 	}
 
 	private static GridBagConstraints createConstraints(int y) {
@@ -66,12 +64,6 @@ public class MatchSettingsPanel extends JPanel {
 	public interface Controller {
 		void setPeaceTime(int minutes);
 
-		void setStartResources(StartResources resources);
-	}
-
-	public enum StartResources {
-		LOW,
-		MEDIUM,
-		HIGH;
+		void setStartResources(ResourceAmount amount);
 	}
 }

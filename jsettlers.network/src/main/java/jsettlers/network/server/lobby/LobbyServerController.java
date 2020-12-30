@@ -6,6 +6,7 @@ import jsettlers.network.NetworkConstants.ENetworkKey;
 import jsettlers.network.common.packets.BooleanMessagePacket;
 import jsettlers.network.common.packets.ChatMessagePacket;
 import jsettlers.network.common.packets.IdPacket;
+import jsettlers.network.common.packets.IntegerMessagePacket;
 import jsettlers.network.common.packets.OpenNewMatchPacket;
 import jsettlers.network.common.packets.PlayerInfoPacket;
 import jsettlers.network.common.packets.TimeSyncPacket;
@@ -16,6 +17,7 @@ import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.MatchId;
+import jsettlers.network.server.lobby.core.ResourceAmount;
 import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchPacket;
@@ -73,6 +75,12 @@ public final class LobbyServerController {
 		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_MATCH, MatchPacket.class, packet -> {
 			lobby.update(user.getId(), packet.getMatch());
+		}));
+		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_MATCH_PEACE_TIME, IntegerMessagePacket.class, packet -> {
+			lobby.updateMatchPeaceTime(user.getId(), packet.getValue());
+		}));
+		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_MATCH_START_RESOURCE_AMOUNT, IntegerMessagePacket.class, packet -> {
+			lobby.updateMatchStartResourceAmount(user.getId(), ResourceAmount.VALUES[packet.getValue()]);
 		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER_TYPE, UpdatePlayerPacket.class, packet -> {
 			lobby.updatePlayerType(user.getId(), packet.getPlayerIndex(), ELobbyPlayerType.VALUES[packet.getIntegerValue()]);
