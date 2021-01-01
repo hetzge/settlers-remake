@@ -14,7 +14,7 @@ import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.MatchState;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.ResourceAmount;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 
 public final class MatchPacket extends Packet {
 
@@ -57,7 +57,7 @@ public final class MatchPacket extends Packet {
 				dis.readUTF(),
 				levelId,
 				players,
-				ResourceAmount.VALUES[dis.readInt()],
+				ELobbyResourceAmount.VALUES[dis.readInt()],
 				Duration.ofMinutes(dis.readLong()),
 				MatchState.VALUES[dis.readInt()]);
 	}

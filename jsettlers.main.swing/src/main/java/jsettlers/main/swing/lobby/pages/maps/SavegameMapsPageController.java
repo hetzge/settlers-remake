@@ -11,14 +11,14 @@ import jsettlers.logic.map.loading.newmap.MapFileHeader;
 import jsettlers.logic.map.loading.savegame.SavegameLoader;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
-import jsettlers.main.swing.lobby.Ui;
+import jsettlers.main.swing.lobby.UiController;
 import jsettlers.main.swing.menu.openpanel.EMapFilter;
 
 public class SavegameMapsPageController implements MapsPagePanel.Controller {
 
-	private final Ui ui;
+	private final UiController ui;
 
-	public SavegameMapsPageController(Ui ui) {
+	public SavegameMapsPageController(UiController ui) {
 		this.ui = ui;
 	}
 

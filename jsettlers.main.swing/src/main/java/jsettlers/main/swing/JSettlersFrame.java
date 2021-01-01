@@ -37,18 +37,17 @@ import jsettlers.common.CommitInfo;
 import jsettlers.common.menu.IMapInterfaceConnector;
 import jsettlers.common.menu.IStartedGame;
 import jsettlers.common.menu.IStartingGame;
+import jsettlers.graphics.localization.Labels;
 import jsettlers.graphics.map.ETextDrawPosition;
 import jsettlers.graphics.map.MapContent;
 import jsettlers.logic.map.loading.MapLoader;
+import jsettlers.main.swing.lobby.UiController;
+import jsettlers.main.swing.lobby.pages.match.SingleplayerMatchPageController;
 import jsettlers.main.swing.menu.joinpanel.JoinGamePanel;
-import jsettlers.main.swing.menu.joinpanel.controller.MultiplayerJoinGameController;
-import jsettlers.main.swing.menu.joinpanel.controller.SingleplayerJoinGameController;
 import jsettlers.main.swing.menu.mainmenu.MainMenuPanel;
 import jsettlers.main.swing.menu.startinggamemenu.StartingGamePanel;
 import jsettlers.main.swing.menu.statspanel.EndgameStatsPanel;
 import jsettlers.main.swing.settings.SettingsManager;
-import jsettlers.network.client.interfaces.INetworkClient;
-import jsettlers.network.server.lobby.core.MatchId;
 
 /**
  * @author codingberlin
@@ -56,6 +55,7 @@ import jsettlers.network.server.lobby.core.MatchId;
 public class JSettlersFrame extends JFrame {
 	private static final long serialVersionUID = 2607082717493797224L;
 
+	private final UiController ui;
 	private final MainMenuPanel mainPanel;
 	private final EndgameStatsPanel endgameStatsPanel = new EndgameStatsPanel(this);
 	private final StartingGamePanel startingGamePanel = new StartingGamePanel(this);
@@ -66,11 +66,12 @@ public class JSettlersFrame extends JFrame {
 	private AreaContainer areaContainer;
 
 	JSettlersFrame() throws HeadlessException {
+		ui = new UiController(this);
 		setTitle("JSettlers - Version: " + CommitInfo.COMMIT_HASH_SHORT);
 
 		SettingsManager settingsManager = SettingsManager.getInstance();
 
-		mainPanel = new MainMenuPanel(this);
+		mainPanel = new MainMenuPanel(ui);
 
 		showMainMenu();
 		setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
@@ -137,7 +138,7 @@ public class JSettlersFrame extends JFrame {
 		setNewContentPane(joinGame);
 	}
 
-	private void setNewContentPane(Container newContent) {
+	public void setNewContentPane(Container newContent) {
 		abortRedrawTimerIfPresent();
 		setContentPane(newContent);
 		revalidate();
@@ -180,7 +181,7 @@ public class JSettlersFrame extends JFrame {
 	}
 
 	public void showNewSinglePlayerGameMenu(MapLoader mapLoader) {
-		setNewContentPane(new SingleplayerJoinGameController(this, mapLoader).setup());
+		ui.setPage(Labels.getString("join-game-panel-new-single-player-game-title"), new SingleplayerMatchPageController(ui, mapLoader).init());
 	}
 
 	public void showEndgameStatistics(IStartedGame game) {

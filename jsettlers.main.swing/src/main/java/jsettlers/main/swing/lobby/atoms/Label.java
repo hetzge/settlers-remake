@@ -7,8 +7,12 @@ import jsettlers.main.swing.lookandfeel.ELFStyle;
 public class Label extends JLabel {
 
 	public Label(String text) {
-		super(text);
-		putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_DYNAMIC);
+		this(text, JLabel.LEFT);
+	}
 
+	public Label(String text, int horizontalAlignment) {
+		super(text);
+		setHorizontalAlignment(horizontalAlignment);
+		putClientProperty(ELFStyle.KEY, ELFStyle.LABEL_DYNAMIC);
 	}
 }

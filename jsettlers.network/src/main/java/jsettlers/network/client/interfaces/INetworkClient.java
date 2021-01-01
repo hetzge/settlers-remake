@@ -29,7 +29,7 @@ import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
-import jsettlers.network.server.lobby.core.ResourceAmount;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 import jsettlers.network.server.lobby.core.UserId;
 
 /**
@@ -65,7 +65,7 @@ public interface INetworkClient extends Closeable {
 
 	void updateMatchPeaceTime(int minutes);
 
-	void updateMatchStartResourceAmount(ResourceAmount amount);
+	void updateMatchStartResourceAmount(ELobbyResourceAmount amount);
 
 	void updatePlayerType(int index, ELobbyPlayerType playerType);
 

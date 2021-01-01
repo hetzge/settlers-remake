@@ -16,8 +16,8 @@ import jsettlers.main.swing.menu.joinpanel.PlayerSlot;
 import jsettlers.main.swing.settings.SettingsManager;
 import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.ResourceAmount;
 
 public final class SingleplayerJoinGameController implements IJoinGameController {
 
@@ -108,7 +108,7 @@ public final class SingleplayerJoinGameController implements IJoinGameController
 	}
 
 	@Override
-	public void updateMatch(Duration peaceTime, ResourceAmount startResources) {
+	public void updateMatch(Duration peaceTime, ELobbyResourceAmount startResources) {
 	}
 
 	@Override

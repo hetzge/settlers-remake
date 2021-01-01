@@ -32,6 +32,7 @@ public class TextFieldUiDark extends MetalTextFieldUI {
 		super.installUI(c);
 		TextComponentHelper.installUi((JTextComponent) c);
 		c.setFont(UIDefaults.FONT_SMALL);
+		c.setForeground(UIDefaults.LABEL_TEXT_COLOR);
 	}
 
 	@Override

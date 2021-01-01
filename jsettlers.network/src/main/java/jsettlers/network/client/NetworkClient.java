@@ -18,7 +18,6 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Timer;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Future;
 import java.util.function.Consumer;
 
 import jsettlers.network.NetworkConstants;
@@ -48,7 +47,7 @@ import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
-import jsettlers.network.server.lobby.core.ResourceAmount;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchArrayPacket;
 import jsettlers.network.server.lobby.network.MatchPacket;
@@ -149,7 +148,7 @@ public class NetworkClient implements ITaskScheduler, INetworkClient {
 	}
 
 	@Override
-	public void updateMatchStartResourceAmount(ResourceAmount amount) {
+	public void updateMatchStartResourceAmount(ELobbyResourceAmount amount) {
 		channel.sendPacket(ENetworkKey.UPDATE_MATCH_START_RESOURCE_AMOUNT, new IntegerMessagePacket(amount.ordinal()));
 	}
 

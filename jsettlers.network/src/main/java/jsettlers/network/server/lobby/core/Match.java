@@ -17,11 +17,11 @@ public final class Match {
 	private final String name;
 	private final LevelId levelId;
 	private final List<Player> players;
-	private ResourceAmount resourceAmount;
+	private ELobbyResourceAmount resourceAmount;
 	private Duration peaceTime;
 	private MatchState state;
 
-	public Match(MatchId id, String name, LevelId levelId, List<Player> players, ResourceAmount resourceAmount, Duration peaceTime, MatchState state) {
+	public Match(MatchId id, String name, LevelId levelId, List<Player> players, ELobbyResourceAmount resourceAmount, Duration peaceTime, MatchState state) {
 		this.id = id;
 		this.name = name;
 		this.levelId = levelId;
@@ -85,7 +85,7 @@ public final class Match {
 		return players.stream().map(Player::getUserId).filter(Optional::isPresent).map(Optional::get).collect(Collectors.toList());
 	}
 
-	public ResourceAmount getResourceAmount() {
+	public ELobbyResourceAmount getResourceAmount() {
 		return resourceAmount;
 	}
 
@@ -105,7 +105,7 @@ public final class Match {
 		players.set(newPlayer.getIndex(), newPlayer);
 	}
 
-	public void setResourceAmount(ResourceAmount resourceAmount) {
+	public void setResourceAmount(ELobbyResourceAmount resourceAmount) {
 		this.resourceAmount = resourceAmount;
 	}
 

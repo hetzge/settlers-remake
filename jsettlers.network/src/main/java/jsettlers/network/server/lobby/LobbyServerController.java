@@ -17,7 +17,7 @@ import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.MatchId;
-import jsettlers.network.server.lobby.core.ResourceAmount;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchPacket;
@@ -80,7 +80,7 @@ public final class LobbyServerController {
 			lobby.updateMatchPeaceTime(user.getId(), packet.getValue());
 		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_MATCH_START_RESOURCE_AMOUNT, IntegerMessagePacket.class, packet -> {
-			lobby.updateMatchStartResourceAmount(user.getId(), ResourceAmount.VALUES[packet.getValue()]);
+			lobby.updateMatchStartResourceAmount(user.getId(), ELobbyResourceAmount.VALUES[packet.getValue()]);
 		}));
 		channel.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER_TYPE, UpdatePlayerPacket.class, packet -> {
 			lobby.updatePlayerType(user.getId(), packet.getPlayerIndex(), ELobbyPlayerType.VALUES[packet.getIntegerValue()]);

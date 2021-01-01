@@ -29,7 +29,7 @@ import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.MatchState;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.ResourceAmount;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
 import jsettlers.network.server.lobby.network.MatchArrayPacket;
@@ -81,7 +81,7 @@ public final class Lobby {
 		final MatchId matchId = MatchId.generate();
 		final List<Player> players = IntStream.range(0, maxPlayers)
 				.mapToObj(i -> new Player(i, "Player-" + i, null, ELobbyPlayerState.UNKNOWN, ELobbyCivilisation.ROMAN, ELobbyPlayerType.EMPTY, i + 1)).collect(Collectors.toList());
-		final Match match = new Match(matchId, matchName, levelId, players, ResourceAmount.HIGH, Duration.ZERO, MatchState.OPENED);
+		final Match match = new Match(matchId, matchName, levelId, players, ELobbyResourceAmount.HIGH_GOODS, Duration.ZERO, MatchState.OPENED);
 		db.setMatch(match);
 		joinMatch(userId, matchId);
 		return matchId;
@@ -210,7 +210,7 @@ public final class Lobby {
 		}
 	}
 
-	public void updateMatchStartResourceAmount(UserId userId, ResourceAmount amount) {
+	public void updateMatchStartResourceAmount(UserId userId, ELobbyResourceAmount amount) {
 		final Match match = db.getActiveMatch(userId);
 		final Player player = db.getPlayer(userId);
 		if (player.isHost()) {

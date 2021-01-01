@@ -60,6 +60,16 @@ public enum ELFStyle {
 	 * JTextField for black background
 	 */
 	TEXT_DEFAULT,
+	
+	/**
+	 * JSpinner
+	 */
+	SPINNER_DEFAULT,
+
+	/**
+	 * JTabbedPane
+	 */
+	TABBED_DEFAULT,
 
 	/**
 	 * Stone toggle button

@@ -15,10 +15,6 @@
 package jsettlers.main.swing.menu.multiplayer;
 
 import java.awt.BorderLayout;
-import java.util.Collections;
-import java.util.Timer;
-import java.util.TimerTask;
-import java.util.stream.Collectors;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -28,35 +24,31 @@ import javax.swing.SwingUtilities;
 
 import jsettlers.common.menu.IMultiplayerConnector;
 import jsettlers.graphics.localization.Labels;
-import jsettlers.logic.map.loading.MapLoader;
-import jsettlers.logic.map.loading.list.MapList;
 import jsettlers.main.MultiplayerConnector;
-import jsettlers.main.datatypes.JoinableGame;
-import jsettlers.main.swing.JSettlersFrame;
-import jsettlers.main.swing.menu.joinpanel.controller.MultiplayerJoinGameController;
-import jsettlers.main.swing.menu.mainmenu.NetworkGameMapLoader;
+import jsettlers.main.swing.lobby.UiController;
+import jsettlers.main.swing.lobby.pages.maps.MapsPagePanel;
+import jsettlers.main.swing.lobby.pages.maps.MultiplayerCreateMatchMapsPageController;
+import jsettlers.main.swing.lobby.pages.maps.MultiplayerJoinMatchMapsPageController;
+import jsettlers.main.swing.lookandfeel.ELFStyle;
 import jsettlers.main.swing.menu.openpanel.OpenPanel;
 import jsettlers.main.swing.settings.ServerEntry;
 import jsettlers.network.client.IClientConnection;
-import jsettlers.network.client.interfaces.INetworkClient;
-import jsettlers.network.server.lobby.core.MatchId;
+import jsettlers.network.client.NetworkClient;
 
 public class ServerConnectionPanel extends JPanel {
 
 	private final OpenPanel openSinglePlayerPanel;
 	private final JTabbedPane root;
+	private final UiController ui;
 	private final ServerEntry entry;
-	private final JSettlersFrame settlersFrame;
-	private Timer timer;
 	private RemoteMapDirectoryPanel maps;
-	private OpenPanel newMatch;
-	private OpenPanel joinMatch;
+	private MapsPagePanel newMatch;
+	private MapsPagePanel joinMatch;
 
-	public ServerConnectionPanel(ServerEntry entry, Runnable leave, JSettlersFrame settlersFrame, OpenPanel openSinglePlayerPanel) {
+	public ServerConnectionPanel(ServerEntry entry, Runnable leave, UiController ui, OpenPanel openSinglePlayerPanel) {
 		this.openSinglePlayerPanel = openSinglePlayerPanel;
 		this.root = new JTabbedPane();
-		this.settlersFrame = settlersFrame;
-		this.timer = new Timer();
+		this.ui = ui;
 		this.maps = null;
 		this.newMatch = null;
 		this.joinMatch = null;
@@ -67,41 +59,17 @@ public class ServerConnectionPanel extends JPanel {
 		entry.setConnectionLogListener(logText::setText);
 		root.addTab(Labels.getString("multiplayer-log-title"), new JScrollPane(logText));
 		root.addTab(Labels.getString("multiplayer-log-settings"), new EditServerEntryPanel(leave, () -> root.setSelectedIndex(0), entry));
+		root.putClientProperty(ELFStyle.KEY, ELFStyle.TABBED_DEFAULT);
 
 		setLayout(new BorderLayout());
 		add(root, BorderLayout.CENTER);
 	}
 
-	@Override
-	public void addNotify() {
-		super.addNotify();
-		timer = new Timer();
-		timer.scheduleAtFixedRate(new TimerTask() {
-			@Override
-			public void run() {
-				updateMatches();
-			}
-		}, 0L, 3000L);
-	}
-
-	private void updateMatches() {
-		if (newMatch != null) {
-			getConnector().getNetworkClient().queryMatches(matches -> {
-				if (newMatch != null) {
-					newMatch.setMapLoaders(matches.stream().map(JoinableGame::new).map(NetworkGameMapLoader::new).collect(Collectors.toList()));
-				}
-			});
-		}
-	}
-
-	@Override
-	public void removeNotify() {
-		super.removeNotify();
-		timer.cancel();
-	}
-
 	public void update() {
-		IClientConnection connection = entry.getConnection();
+		final IClientConnection connection = entry.getConnection();
+		final MultiplayerConnector multiplayerConnector = getConnector();
+		final NetworkClient networkClient = (NetworkClient) multiplayerConnector.getNetworkClient();
+
 		boolean conMaps = connection.getMaps("/") != null;
 		int i = 1;
 		if (!conMaps && maps != null) {
@@ -122,11 +90,11 @@ public class ServerConnectionPanel extends JPanel {
 			newMatch = null;
 			joinMatch = null;
 		} else if (conMatch && newMatch == null) {
-			newMatch = new OpenPanel(MapList.getDefaultList().getFreshMaps().getItems(), this::createMatch);
+			newMatch = new MapsPagePanel(ui, new MultiplayerCreateMatchMapsPageController(ui, networkClient));
 			SwingUtilities.updateComponentTreeUI(newMatch);
 			root.insertTab(Labels.getString("multiplayer-newmatch-title"), null, newMatch, null, i);
 
-			joinMatch = new OpenPanel(Collections.emptyList(), this::joinMatch);
+			joinMatch = new MapsPagePanel(ui, new MultiplayerJoinMatchMapsPageController(ui, networkClient));
 			SwingUtilities.updateComponentTreeUI(joinMatch);
 
 			root.insertTab(Labels.getString("multiplayer-joinmatch-title"), null, joinMatch, null, i + 1);
@@ -135,26 +103,6 @@ public class ServerConnectionPanel extends JPanel {
 		if (newMatch != null) {
 			i += 2;
 		}
-	}
-
-	public void createMatch(MapLoader mapLoader) {
-		final MultiplayerConnector multiplayerConnector = getConnector();
-		final INetworkClient networkClient = multiplayerConnector.getNetworkClient();
-		MultiplayerJoinGameController
-				.createMatch(settlersFrame, networkClient, mapLoader)
-				.thenAccept(panel -> SwingUtilities.invokeLater(() -> settlersFrame.showJoinGamePanel(panel)));
-	}
-
-	public void joinMatch(MapLoader mapLoader) {
-		final MultiplayerConnector multiplayerConnector = getConnector();
-		if (!(mapLoader instanceof NetworkGameMapLoader)) {
-			throw new IllegalStateException(String.format("Require %s to create match but is '%s'", NetworkGameMapLoader.class.getSimpleName(), mapLoader.getClass().getSimpleName()));
-		}
-		final NetworkGameMapLoader networkGameMapLoader = (NetworkGameMapLoader) mapLoader;
-		final INetworkClient networkClient = multiplayerConnector.getNetworkClient();
-		MultiplayerJoinGameController
-				.joinMatch(settlersFrame, networkClient, MapList.getDefaultList().getMapById(networkGameMapLoader.getMapId()), new MatchId(networkGameMapLoader.getJoinableGame().getId()))
-				.thenAccept(panel -> SwingUtilities.invokeLater(() -> settlersFrame.showJoinGamePanel(panel)));
 	}
 
 	private MultiplayerConnector getConnector() {

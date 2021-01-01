@@ -134,23 +134,6 @@ public final class JSettlersSwingUtil {
 	/**
 	 * Set without trigger action listener.
 	 */
-	public static void set(JSpinner component, Runnable runnable) {
-		final ChangeListener[] listeners = component.getChangeListeners();
-		for (final ChangeListener listener : listeners) {
-			component.removeChangeListener(listener);
-		}
-		try {
-			runnable.run();
-		} finally {
-			for (final ChangeListener listener : listeners) {
-				component.addChangeListener(listener);
-			}
-		}
-	}
-
-	/**
-	 * Set without trigger action listener.
-	 */
 	public static void set(JButton component, Runnable runnable) {
 		final ChangeListener[] listeners = component.getChangeListeners();
 		for (final ChangeListener listener : listeners) {

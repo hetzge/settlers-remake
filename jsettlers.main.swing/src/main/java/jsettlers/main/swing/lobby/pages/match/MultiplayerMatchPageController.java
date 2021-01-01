@@ -1,22 +1,19 @@
 package jsettlers.main.swing.lobby.pages.match;
 
-import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import jsettlers.common.ai.EPlayerType;
-import jsettlers.common.player.ECivilisation;
+import javax.swing.SwingUtilities;
+
 import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.list.MapList;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
-import jsettlers.main.swing.lobby.Ui;
+import jsettlers.main.swing.lobby.UiController;
 import jsettlers.main.swing.lobby.organisms.MatchSettingsPanel;
 import jsettlers.main.swing.lobby.organisms.PlayersPanel.PlayerPanel;
-import jsettlers.main.swing.menu.joinpanel.Utils;
 import jsettlers.main.swing.settings.SettingsManager;
 import jsettlers.network.NetworkConstants;
 import jsettlers.network.NetworkConstants.ENetworkKey;
@@ -33,35 +30,36 @@ import jsettlers.network.infrastructure.channel.listeners.SimpleListener;
 import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerState;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.ResourceAmount;
 import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.lobby.network.PlayerPacket;
 
 public class MultiplayerMatchPageController implements MatchPagePanel.Controller {
 
-	private final Ui ui;
+	private final UiController ui;
 	private final MatchPagePanel panel;
 	private final NetworkClient client;
 	private final MatchId matchId;
 	private final MapLoader mapLoader;
+	private final boolean host;
 	private Player[] players;
 
-	public MultiplayerMatchPageController(Ui ui, NetworkClient client, MatchId matchId, MapLoader mapLoader) {
+	public MultiplayerMatchPageController(UiController ui, NetworkClient client, MatchId matchId, MapLoader mapLoader, boolean host) {
 		this.ui = ui;
 		this.panel = new MatchPagePanel(this);
 		this.client = client;
 		this.matchId = matchId;
 		this.mapLoader = mapLoader;
+		this.host = host;
 		this.players = new Player[0];
 	}
 
 	@Override
 	public MatchPagePanel init() {
 		// Setup ui
-		this.panel.setTitle(Labels.getString("join-game-panel-join-multi-player-game-title"));
 		this.panel.getChatPanel().setVisible(true);
 		this.panel.getMatchSettingsPanel().setMapInformation(this.mapLoader);
 		// Setup network
@@ -77,11 +75,12 @@ public class MultiplayerMatchPageController implements MatchPagePanel.Controller
 			this.players[index] = player;
 			final PlayerPanel playerPanel = this.panel.getPlayersPanel().getPlayerPanel(index);
 			playerPanel.setCivilisation(player.getCivilisation());
-			playerPanel.setName(player.getName());
+			playerPanel.setPlayer(player.getName());
 			playerPanel.setReady(player.getState() == ELobbyPlayerState.READY);
 			playerPanel.setTeam(player.getTeam());
 			playerPanel.setType(player.getType());
 			playerPanel.setEnabled(canEditPlayer(player));
+			updateStartButton();
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.KICK_USER, BooleanMessagePacket.class, packet -> {
 			cancel();
@@ -107,7 +106,7 @@ public class MultiplayerMatchPageController implements MatchPagePanel.Controller
 	private void updateMatch(Match match) {
 		final List<Player> players = match.getPlayers();
 		final MatchSettingsPanel matchSettingsPanel = this.panel.getMatchSettingsPanel();
-		matchSettingsPanel.setPeaceTime((int) match.getPeaceTime().get(ChronoUnit.MINUTES));
+		matchSettingsPanel.setPeaceTime((int) match.getPeaceTime().toMinutes());
 		matchSettingsPanel.setStartResources(match.getResourceAmount());
 		this.panel.setTitle(match.getName());
 		if (!players.isEmpty()) {
@@ -117,10 +116,15 @@ public class MultiplayerMatchPageController implements MatchPagePanel.Controller
 				this.panel.getPlayersPanel().getPlayerPanel(player.getIndex()).setEnabled(canEditPlayer(player));
 			}
 		}
+		updateStartButton();
 	}
 
 	private boolean canEditPlayer(Player player) {
-		return this.client.getUserId().equals(player.getUserId().orElse(null));
+		return host || (this.client.getUserId().equals(player.getUserId().orElse(null)) && !player.isReady());
+	}
+
+	private void updateStartButton() {
+		this.panel.showStartButton(Arrays.stream(MultiplayerMatchPageController.this.players).allMatch(Player::isReady));
 	}
 
 	@Override
@@ -167,7 +171,7 @@ public class MultiplayerMatchPageController implements MatchPagePanel.Controller
 	}
 
 	@Override
-	public void setStartResources(ResourceAmount amount) {
+	public void setStartResources(ELobbyResourceAmount amount) {
 		this.client.updateMatchStartResourceAmount(amount);
 	}
 
@@ -178,27 +182,29 @@ public class MultiplayerMatchPageController implements MatchPagePanel.Controller
 
 	/* --- FACTORIES --- */
 
-	public static CompletableFuture<MatchPagePanel> joinMatch(Ui ui, NetworkClient client, MapLoader mapLoader, MatchId matchId) {
+	public static CompletableFuture<MatchPagePanel> joinMatch(UiController ui, NetworkClient client, MapLoader mapLoader, MatchId matchId) {
 		return create(ui, client, mapLoader, matchId);
 	}
 
-	public static CompletableFuture<MatchPagePanel> createMatch(Ui ui, NetworkClient client, MapLoader mapLoader) {
+	public static CompletableFuture<MatchPagePanel> createMatch(UiController ui, NetworkClient client, MapLoader mapLoader) {
 		return create(ui, client, mapLoader, null);
 	}
 
-	private static CompletableFuture<MatchPagePanel> create(Ui ui, NetworkClient client, MapLoader mapLoader, MatchId matchId) {
+	private static CompletableFuture<MatchPagePanel> create(UiController ui, NetworkClient client, MapLoader mapLoader, MatchId matchId) {
 		final boolean isHost = matchId == null;
 		final CompletableFuture<MatchPagePanel> future = new CompletableFuture<>();
 		client.registerListener(new SimpleListener<>(ENetworkKey.JOIN_MATCH, MatchPacket.class, packet -> {
 			client.removeListener(ENetworkKey.JOIN_MATCH);
-			final Match match = packet.getMatch();
-			final MultiplayerMatchPageController controller = new MultiplayerMatchPageController(ui, client, match.getId(), mapLoader);
-			future.complete(controller.init());
-			controller.updateMatch(match);
+			SwingUtilities.invokeLater(() -> {
+				final Match match = packet.getMatch();
+				final MultiplayerMatchPageController controller = new MultiplayerMatchPageController(ui, client, match.getId(), mapLoader, isHost);
+				future.complete(controller.init());
+				controller.updateMatch(match);
+			});
 		}));
 		CompletableFuture.runAsync(() -> {
 			if (isHost) {
-				final String matchName = mapLoader.getMapName() + "(" + SettingsManager.getInstance().getUserName() + ")";
+				final String matchName = mapLoader.getMapName() + " [" + SettingsManager.getInstance().getUserName() + "]";
 				final MapInfoPacket mapInfoPacket = new MapInfoPacket(mapLoader.getMapId(), mapLoader.getMapName(), "", "", mapLoader.getMaxPlayers());
 				client.openNewMatch(matchName, mapLoader.getMaxPlayers(), mapInfoPacket);
 			} else {

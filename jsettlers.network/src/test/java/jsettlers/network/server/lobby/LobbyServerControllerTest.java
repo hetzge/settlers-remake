@@ -27,7 +27,7 @@ import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.MatchState;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.ResourceAmount;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 import jsettlers.network.server.lobby.core.User;
 import jsettlers.network.server.lobby.core.UserId;
 
@@ -70,7 +70,7 @@ public class LobbyServerControllerTest {
 				Arrays.asList(
 						new Player(0, userA.getUsername(), userA.getId(), ELobbyPlayerState.UNKNOWN, ELobbyCivilisation.ROMAN, ELobbyPlayerType.HUMAN, 0),
 						new Player(1, userB.getUsername(), userB.getId(), ELobbyPlayerState.UNKNOWN, ELobbyCivilisation.ROMAN, ELobbyPlayerType.HUMAN, 0)),
-				ResourceAmount.HIGH, Duration.ofMinutes(0),
+				ELobbyResourceAmount.HIGH_GOODS, Duration.ofMinutes(0),
 				MatchState.OPENED));
 
 		this.timer = new Timer();

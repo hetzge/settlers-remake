@@ -14,7 +14,7 @@ import javax.swing.JScrollPane;
 
 import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
-import jsettlers.main.swing.lobby.Ui;
+import jsettlers.main.swing.lobby.UiController;
 import jsettlers.main.swing.lobby.molecules.SearchTextField;
 import jsettlers.main.swing.lobby.molecules.ToggleBarPanel;
 import jsettlers.main.swing.menu.openpanel.EMapFilter;
@@ -29,7 +29,7 @@ public class MapsPanel extends JPanel {
 	private EMapFilter filter;
 	private String query;
 
-	public MapsPanel(Ui ui, Controller controller) {
+	public MapsPanel(UiController ui, Controller controller) {
 		this.contoller = controller;
 		this.filter = EMapFilter.ALL;
 		this.query = "";

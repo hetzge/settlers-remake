@@ -41,6 +41,9 @@ import jsettlers.logic.map.loading.savegame.SavegameLoader;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
 import jsettlers.main.swing.JSettlersFrame;
+import jsettlers.main.swing.lobby.UiController;
+import jsettlers.main.swing.lobby.pages.maps.MapsPagePanel;
+import jsettlers.main.swing.lobby.pages.maps.SingleplayerCreateMatchMapsPageController;
 import jsettlers.main.swing.lookandfeel.ELFStyle;
 import jsettlers.main.swing.lookandfeel.components.SplitedBackgroundPanel;
 import jsettlers.main.swing.menu.multiplayer.EditServerEntryPanel;
@@ -56,9 +59,8 @@ import jsettlers.main.swing.settings.ServerManager;
 public class MainMenuPanel extends SplitedBackgroundPanel {
 	private static final long serialVersionUID = -6745474019479693347L;
 
-	private final JSettlersFrame settlersFrame;
-	private final JPanel         emptyPanel  = new JPanel();
-	private final ButtonGroup    buttonGroup = new ButtonGroup();
+	private final JPanel emptyPanel = new JPanel();
+	private final ButtonGroup buttonGroup = new ButtonGroup();
 	private JList<ServerEntry> serverOverview;
 	private Map<ServerEntry, ServerConnectionPanel> serverConnectionPanels = new WeakHashMap<>();
 
@@ -74,14 +76,15 @@ public class MainMenuPanel extends SplitedBackgroundPanel {
 
 	private final OpenPanel openSinglePlayerPanel;
 
-	public MainMenuPanel(JSettlersFrame settlersFrame) {
-		this.settlersFrame = settlersFrame;
+	private final UiController ui;
 
-		openSinglePlayerPanel = new OpenPanel(MapList.getDefaultList().getFreshMaps().getItems(), settlersFrame::showNewSinglePlayerGameMenu);
+	public MainMenuPanel(UiController ui) {
+		this.ui = ui;
+		openSinglePlayerPanel = new OpenPanel(MapList.getDefaultList().getFreshMaps().getItems(), ui.getFrame()::showNewSinglePlayerGameMenu);
 		OpenPanel openSaveGamePanel = new OpenPanel(MapList.getDefaultList().getSavedMaps(), this::loadSavegame);
 		SettingsMenuPanel settingsPanel = new SettingsMenuPanel(this);
 
-		registerMenu("main-panel-new-single-player-game-button", e -> setCenter("main-panel-new-single-player-game-button", openSinglePlayerPanel));
+		registerMenu("main-panel-new-single-player-game-button", e -> setCenter("main-panel-new-single-player-game-button", new MapsPagePanel(ui, new SingleplayerCreateMatchMapsPageController(ui))));
 		registerMenu("start-loadgame", e -> setCenter("start-loadgame", openSaveGamePanel));
 		registerMenu("settings-title", e -> {
 			setCenter("settings-title", settingsPanel);
@@ -91,14 +94,13 @@ public class MainMenuPanel extends SplitedBackgroundPanel {
 		initButtonPanel();
 		SwingUtilities.updateComponentTreeUI(this);
 
-
 		Timer updateServerTimer = new Timer("update-server-ui");
 		updateServerTimer.schedule(new TimerTask() {
 			@Override
 			public void run() {
 				Component mainPanel = getComponent(2);
-				if(mainPanel instanceof ServerConnectionPanel) {
-					((ServerConnectionPanel)mainPanel).update();
+				if (mainPanel instanceof ServerConnectionPanel) {
+					((ServerConnectionPanel) mainPanel).update();
 				}
 				repaint();
 			}
@@ -114,7 +116,7 @@ public class MainMenuPanel extends SplitedBackgroundPanel {
 		initServerList();
 
 		JButton btExit = new JButton(Labels.getString("main-panel-exit-button"));
-		btExit.addActionListener(e -> settlersFrame.exit());
+		btExit.addActionListener(e -> ui.getFrame().exit());
 		btExit.putClientProperty(ELFStyle.KEY, ELFStyle.BUTTON_MENU);
 
 		mainButtonPanel.add(btExit, BorderLayout.SOUTH);
@@ -129,11 +131,12 @@ public class MainMenuPanel extends SplitedBackgroundPanel {
 		serverOverview = new JList<>(ServerManager.getInstance().createListModel());
 		serverOverview.addListSelectionListener(e -> {
 			ServerEntry selected = serverOverview.getSelectedValue();
-			if(selected == null) return;
+			if (selected == null)
+				return;
 			buttonGroup.clearSelection();
 			ServerConnectionPanel connPanel = serverConnectionPanels.get(selected);
-			if(connPanel == null) {
-				connPanel = new ServerConnectionPanel(selected, this::reset, settlersFrame, openSinglePlayerPanel);
+			if (connPanel == null) {
+				connPanel = new ServerConnectionPanel(selected, this::reset, ui, openSinglePlayerPanel);
 				serverConnectionPanels.put(selected, connPanel);
 			}
 			setCenter(selected.getAlias(), connPanel);
@@ -174,7 +177,7 @@ public class MainMenuPanel extends SplitedBackgroundPanel {
 			byte playerId = mapFileHeader.getPlayerId();
 			JSettlersGame game = new JSettlersGame(savegameLoader, -1, playerId, playerSettings);
 			IStartingGame startingGame = game.start();
-			settlersFrame.showStartingGamePanel(startingGame);
+			ui.getFrame().showStartingGamePanel(startingGame);
 		}
 	}
 
@@ -196,10 +199,10 @@ public class MainMenuPanel extends SplitedBackgroundPanel {
 		SwingUtilities.updateComponentTreeUI(panelToBeSet);
 		remove(2);
 		add(panelToBeSet);
-		if(!(panelToBeSet instanceof ServerConnectionPanel)) {
+		if (!(panelToBeSet instanceof ServerConnectionPanel)) {
 			serverOverview.clearSelection();
 		}
-		settlersFrame.revalidate();
-		settlersFrame.repaint();
+		ui.getFrame().revalidate();
+		ui.getFrame().repaint();
 	}
 }

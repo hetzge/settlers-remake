@@ -1,7 +1,6 @@
 package jsettlers.main.swing.lobby.organisms;
 
 import java.awt.BorderLayout;
-import java.awt.Dimension;
 
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
@@ -19,7 +18,6 @@ public class ChatPanel extends JPanel {
 		setLayout(new BorderLayout(10, 10));
 		add(new JScrollPane(this.textArea = new TextArea("", false)), BorderLayout.CENTER);
 		add(new InputBarPanel(new ChatInputBarListener()), BorderLayout.SOUTH);
-		this.textArea.setPreferredSize(new Dimension(0, 350));
 	}
 
 	public void addMessage(String text) {

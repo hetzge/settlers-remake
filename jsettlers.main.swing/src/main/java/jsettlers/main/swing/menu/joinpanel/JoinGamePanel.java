@@ -55,9 +55,9 @@ import jsettlers.main.swing.menu.joinpanel.controller.IJoinGameController;
 import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerState;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.ResourceAmount;
 
 /**
  * Layout:
@@ -263,12 +263,12 @@ public class JoinGamePanel extends BackgroundPanel {
 		return Duration.ofMinutes(Long.valueOf(peaceTimeTextField.getText()));
 	}
 
-	private void setStartResourceAmount(ResourceAmount amount) {
+	private void setStartResourceAmount(ELobbyResourceAmount amount) {
 		JSettlersSwingUtil.set(startResourcesComboBox, () -> startResourcesComboBox.setSelectedIndex(amount.ordinal()));
 	}
 
-	private ResourceAmount getStartResourceAmount() {
-		return ResourceAmount.VALUES[startResourcesComboBox.getSelectedIndex()];
+	private ELobbyResourceAmount getStartResourceAmount() {
+		return ELobbyResourceAmount.VALUES[startResourcesComboBox.getSelectedIndex()];
 	}
 
 	public void appendChat(String message) {

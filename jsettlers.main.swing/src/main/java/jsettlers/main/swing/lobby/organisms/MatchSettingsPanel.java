@@ -7,18 +7,19 @@ import java.awt.image.BufferedImage;
 
 import javax.swing.JPanel;
 
+import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.main.swing.JSettlersSwingUtil;
 import jsettlers.main.swing.lobby.atoms.ComboBox;
 import jsettlers.main.swing.lobby.atoms.ImagePanel;
 import jsettlers.main.swing.lobby.atoms.IntegerSpinner;
 import jsettlers.main.swing.lobby.atoms.Label;
-import jsettlers.network.server.lobby.core.ResourceAmount;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 
 public class MatchSettingsPanel extends JPanel {
 
 	private final IntegerSpinner peaceTimeIntegerSpinner;
-	private final ComboBox<ResourceAmount> startResourcesDropDown;
+	private final ComboBox<ELobbyResourceAmount> startResourcesDropDown;
 	private final Label mapLabel;
 	private final ImagePanel mapImage;
 
@@ -27,13 +28,15 @@ public class MatchSettingsPanel extends JPanel {
 		int y = 0;
 		add(this.mapLabel = new Label("..."), createConstraints(y++));
 		add(this.mapImage = new ImagePanel(), createConstraints(y++));
-		add(new Label("Peace time"), createConstraints(y++));
+		add(new Label(Labels.getString("join-game-panel-peace-time")), createConstraints(y++));
 		add(this.peaceTimeIntegerSpinner = new IntegerSpinner(10, 0, 9999, 1), createConstraints(y++));
-		add(new Label("Start resources"), createConstraints(y++));
-		add(this.startResourcesDropDown = new ComboBox<>(ResourceAmount.values(), ResourceAmount.MEDIUM, Enum::name), createConstraints(y++));
+		add(new Label(Labels.getString("join-game-panel-start-resources")), createConstraints(y++));
+		add(this.startResourcesDropDown = new ComboBox<>(ELobbyResourceAmount.values(), ELobbyResourceAmount.MEDIUM_GOODS, it -> Labels.getString("map-start-resources-" + it.name())),
+				createConstraints(y++));
 		this.mapImage.setDimension(new Dimension(300, 150));
+		this.startResourcesDropDown.setPreferredSize(new Dimension(0, 35));
 		this.peaceTimeIntegerSpinner.addChangeListener(event -> controller.setPeaceTime(peaceTimeIntegerSpinner.getIntegerValue()));
-		this.startResourcesDropDown.addItemListener(event -> controller.setStartResources((ResourceAmount) event.getItem()));
+		this.startResourcesDropDown.addItemListener(event -> controller.setStartResources(startResourcesDropDown.getValue()));
 	}
 
 	public void setMapInformation(MapLoader loader) {
@@ -46,10 +49,10 @@ public class MatchSettingsPanel extends JPanel {
 	}
 
 	public void setPeaceTime(int minutes) {
-		JSettlersSwingUtil.set(this.peaceTimeIntegerSpinner, () -> this.peaceTimeIntegerSpinner.setIntegerValue(minutes));
+		this.peaceTimeIntegerSpinner.setIntegerValue(minutes);
 	}
 
-	public void setStartResources(ResourceAmount amount) {
+	public void setStartResources(ELobbyResourceAmount amount) {
 		JSettlersSwingUtil.set(this.startResourcesDropDown, () -> this.startResourcesDropDown.setSelectedItem(amount));
 	}
 
@@ -64,6 +67,6 @@ public class MatchSettingsPanel extends JPanel {
 	public interface Controller {
 		void setPeaceTime(int minutes);
 
-		void setStartResources(ResourceAmount amount);
+		void setStartResources(ELobbyResourceAmount amount);
 	}
 }

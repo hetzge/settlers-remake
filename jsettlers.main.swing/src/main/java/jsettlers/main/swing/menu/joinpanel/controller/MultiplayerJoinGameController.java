@@ -35,12 +35,12 @@ import jsettlers.network.infrastructure.channel.listeners.SimpleListener;
 import jsettlers.network.infrastructure.channel.reject.RejectPacket;
 import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 import jsettlers.network.server.lobby.core.LevelId;
 import jsettlers.network.server.lobby.core.Match;
 import jsettlers.network.server.lobby.core.MatchId;
 import jsettlers.network.server.lobby.core.MatchState;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.ResourceAmount;
 import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.lobby.network.PlayerPacket;
 
@@ -197,7 +197,7 @@ public final class MultiplayerJoinGameController implements IJoinGameController 
 	}
 
 	@Override
-	public void updateMatch(Duration peaceTime, ResourceAmount startResources) {
+	public void updateMatch(Duration peaceTime, ELobbyResourceAmount startResources) {
 		this.client.updateMatch(new Match(matchId, "", new LevelId(mapLoader.getMapId()), Collections.emptyList(), startResources, peaceTime, MatchState.OPENED));
 	}
 

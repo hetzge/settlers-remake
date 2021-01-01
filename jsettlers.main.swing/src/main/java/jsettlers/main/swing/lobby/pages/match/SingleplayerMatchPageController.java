@@ -9,40 +9,40 @@ import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
-import jsettlers.main.swing.lobby.Ui;
+import jsettlers.main.swing.lobby.UiController;
 import jsettlers.network.server.lobby.core.ELobbyCivilisation;
 import jsettlers.network.server.lobby.core.ELobbyPlayerState;
 import jsettlers.network.server.lobby.core.ELobbyPlayerType;
+import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 import jsettlers.network.server.lobby.core.Player;
-import jsettlers.network.server.lobby.core.ResourceAmount;
 import jsettlers.network.server.lobby.core.UserId;
 
 public class SingleplayerMatchPageController implements MatchPagePanel.Controller {
 
-	private final Ui ui;
+	private final UiController ui;
 	private final MatchPagePanel panel;
 	private final List<Player> players;
 	private final MapLoader mapLoader;
 	private int peaceTimeInMinutes;
-	private ResourceAmount resourceAmount;
+	private ELobbyResourceAmount resourceAmount;
 
-	public SingleplayerMatchPageController(Ui ui, MapLoader mapLoader) {
+	public SingleplayerMatchPageController(UiController ui, MapLoader mapLoader) {
 		this.ui = ui;
 		this.mapLoader = mapLoader;
 		this.panel = new MatchPagePanel(this);
 		this.players = createPlayers(mapLoader);
 		this.peaceTimeInMinutes = 0;
-		this.resourceAmount = ResourceAmount.MEDIUM;
+		this.resourceAmount = ELobbyResourceAmount.MEDIUM_GOODS;
 	}
 
 	@Override
 	public MatchPagePanel init() {
-		this.panel.setTitle(Labels.getString("join-game-panel-new-single-player-game-title"));
 		this.panel.getPlayersPanel().setPlayers(players);
 		this.panel.getMatchSettingsPanel().setPeaceTime(peaceTimeInMinutes);
 		this.panel.getMatchSettingsPanel().setStartResources(resourceAmount);
 		this.panel.getMatchSettingsPanel().setMapInformation(this.mapLoader);
 		this.panel.getChatPanel().setVisible(false);
+		this.panel.showStartButton(true);
 		return this.panel;
 	}
 
@@ -79,7 +79,8 @@ public class SingleplayerMatchPageController implements MatchPagePanel.Controlle
 
 	@Override
 	public void setReady(int index, boolean ready) {
-		players.get(index).setReady(ready);
+		players.get(index).setReady(true);
+		this.panel.getPlayersPanel().getPlayerPanel(index).setReady(true);
 	}
 
 	@Override
@@ -93,7 +94,7 @@ public class SingleplayerMatchPageController implements MatchPagePanel.Controlle
 	}
 
 	@Override
-	public void setStartResources(ResourceAmount amount) {
+	public void setStartResources(ELobbyResourceAmount amount) {
 		this.resourceAmount = amount;
 	}
 

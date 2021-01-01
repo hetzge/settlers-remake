@@ -1,31 +1,35 @@
 package jsettlers.main.swing.lobby;
 
-import java.util.concurrent.CompletableFuture;
+import java.awt.Component;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-import javax.swing.JFrame;
 import javax.swing.SwingUtilities;
 
 import jsettlers.main.swing.JSettlersFrame;
+import jsettlers.main.swing.lobby.pages.Page;
 
-public class Ui {
+public class UiController {
 
-	private final JFrame frame;
+	private final JSettlersFrame frame;
 	private final ExecutorService executorService;
 
-	public Ui(JFrame frame) {
+	public UiController(JSettlersFrame frame) {
 		this.frame = frame;
 		this.executorService = Executors.newSingleThreadExecutor();
 	}
 
 	public JSettlersFrame getFrame() {
-		// TODO
-		return (JSettlersFrame) frame;
+		return frame;
 	}
-	
+
+	public void setPage(String title, Component component) {
+		this.frame.setNewContentPane(new Page(title, component));
+		SwingUtilities.updateComponentTreeUI(this.frame);
+	}
+
 	public <T> void async(Supplier<T> request, Consumer<T> handler) {
 		this.executorService.submit(() -> {
 			final T value = request.get();

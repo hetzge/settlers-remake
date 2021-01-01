@@ -6,21 +6,22 @@ import java.util.stream.Collectors;
 
 import javax.swing.SwingUtilities;
 
+import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.main.datatypes.JoinableGame;
-import jsettlers.main.swing.lobby.Ui;
+import jsettlers.main.swing.lobby.UiController;
 import jsettlers.main.swing.lobby.pages.match.MultiplayerMatchPageController;
 import jsettlers.main.swing.menu.mainmenu.NetworkGameMapLoader;
 import jsettlers.main.swing.menu.openpanel.EMapFilter;
 import jsettlers.network.client.NetworkClient;
 import jsettlers.network.server.lobby.core.MatchId;
 
-public class JoinMatchMapsPageController implements MapsPagePanel.Controller {
+public class MultiplayerJoinMatchMapsPageController implements MapsPagePanel.Controller {
 
-	private final Ui ui;
+	private final UiController ui;
 	private final NetworkClient client;
 
-	public JoinMatchMapsPageController(Ui ui, NetworkClient client) {
+	public MultiplayerJoinMatchMapsPageController(UiController ui, NetworkClient client) {
 		this.ui = ui;
 		this.client = client;
 	}
@@ -48,8 +49,7 @@ public class JoinMatchMapsPageController implements MapsPagePanel.Controller {
 			final NetworkGameMapLoader networkGameMapLoader = (NetworkGameMapLoader) mapLoader;
 			final MatchId matchId = new MatchId(networkGameMapLoader.getJoinableGame().getId());
 			MultiplayerMatchPageController.joinMatch(ui, client, mapLoader, matchId).thenAccept(panel -> {
-				// TODO
-				// this.ui.getFrame().showJoinGamePanel(panel);
+				this.ui.setPage(Labels.getString("join-game-panel-join-multi-player-game-title"), panel);
 			});
 		} else {
 			throw new IllegalStateException("Map loader is not a NetworkGameMapLoader");

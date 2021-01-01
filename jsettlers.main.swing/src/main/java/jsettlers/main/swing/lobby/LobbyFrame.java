@@ -3,12 +3,8 @@ package jsettlers.main.swing.lobby;
 import java.awt.BorderLayout;
 import java.io.File;
 import java.io.IOException;
-import java.util.Arrays;
-import java.util.Collection;
-import java.util.concurrent.CompletableFuture;
 
 import javax.swing.JFrame;
-import javax.swing.JScrollPane;
 import javax.swing.SwingUtilities;
 
 import jsettlers.common.resources.ResourceManager;
@@ -17,13 +13,11 @@ import jsettlers.common.resources.SettlersFolderChecker.SettlersFolderInfo;
 import jsettlers.graphics.image.reader.DatFileUtils;
 import jsettlers.graphics.map.draw.ImageProvider;
 import jsettlers.logic.map.loading.MapLoadException;
-import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.list.DirectoryMapLister.ListedMapFile;
 import jsettlers.logic.map.loading.original.OriginalMapLoader;
-import jsettlers.main.swing.lobby.organisms.MapsPanel;
+import jsettlers.main.swing.lobby.atoms.IntegerSpinner;
 import jsettlers.main.swing.lookandfeel.JSettlersLookAndFeel;
 import jsettlers.main.swing.lookandfeel.JSettlersLookAndFeelExecption;
-import jsettlers.main.swing.menu.openpanel.EMapFilter;
 import jsettlers.main.swing.resources.SwingResourceProvider;
 import jsettlers.main.swing.settings.SettingsManager;
 
@@ -50,26 +44,26 @@ public class LobbyFrame extends JFrame {
 			try {
 				mapLoader = new OriginalMapLoader(new ListedMapFile(new File("/home/hetzge/.wine/drive_c/GOG Games/Settlers 3 Ultimate/Map/SINGLE/Pirates.map")));
 				// final JScrollPane scrollPane = new JScrollPane(new SingleplayerMatchPageController(new Ui(frame), mapLoader).init());
-				final JScrollPane scrollPane = new JScrollPane(new MapsPanel(new Ui(frame), new MapsPanel.Controller() {
-
-					@Override
-					public CompletableFuture<Collection<MapLoader>> load(EMapFilter filter, String query) {
-						System.out.println("LobbyFrame.main(...).new Controller() {...}.load()");
-						return CompletableFuture.completedFuture(Arrays.asList(mapLoader));
-					}
-
-					@Override
-					public void selectMap(MapLoader mapLoader) {
-						System.out.println("LobbyFrame.main(...).new Controller() {...}.selectMap()");
-					}
-				}));
-				frame.add(scrollPane, BorderLayout.CENTER);
+				// final JScrollPane scrollPane = new JScrollPane(new MapsPanel(new Ui(frame), new MapsPanel.Controller() {
+				//
+				// @Override
+				// public CompletableFuture<Collection<MapLoader>> load(EMapFilter filter, String query) {
+				// System.out.println("LobbyFrame.main(...).new Controller() {...}.load()");
+				// return CompletableFuture.completedFuture(Arrays.asList(mapLoader));
+				// }
+				//
+				// @Override
+				// public void selectMap(MapLoader mapLoader) {
+				// System.out.println("LobbyFrame.main(...).new Controller() {...}.selectMap()");
+				// }
+				// }));
+				final IntegerSpinner spinner = new IntegerSpinner(0, 0, 10, 1);
+				frame.add(spinner, BorderLayout.CENTER);
 				SwingUtilities.updateComponentTreeUI(frame);
 			} catch (MapLoadException e) {
 				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
-
 		});
 	}
 }

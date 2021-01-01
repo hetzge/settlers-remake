@@ -29,6 +29,8 @@ import jsettlers.main.swing.lookandfeel.factory.PanelUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.ProgressBarUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.ScrollPaneUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.ScrollbarUiFactory;
+import jsettlers.main.swing.lookandfeel.factory.SpinnerUiFactory;
+import jsettlers.main.swing.lookandfeel.factory.TabbedPaneUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.TableUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.TextAreaUiFactory;
 import jsettlers.main.swing.lookandfeel.factory.TextFieldUiFactory;
@@ -64,8 +66,10 @@ public class JSettlersLookAndFeel {
 			// UIManager.addAuxiliaryLookAndFeel(laf);
 			// doesn't work as expected...
 
+			TabbedPaneUiFactory.FORWARD.loadFromType("TabbedPaneUI");
 			ButtonUiFactory.FORWARD.loadFromType("ButtonUI");
 			TextFieldUiFactory.FORWARD.loadFromType("TextFieldUI");
+			SpinnerUiFactory.FORWARD.loadFromType("SpinnerUI");
 			ButtonUiFactory.FORWARD.loadFromType("ButtonUI");
 			LabelUiFactory.FORWARD.loadFromType("LabelUI");
 			TableUiFactory.FORWARD.loadFromType("TableUI");
@@ -78,24 +82,12 @@ public class JSettlersLookAndFeel {
 			TextAreaUiFactory.FORWARD.loadFromType("TextAreaUI");
 			ComboboxUiFactory.FORWARD.loadFromType("ComboBoxUI");
 
-			// Scrollbar
-			UIManager.put("ScrollBar.width", 20);
-
-			// ComboBox
-			UIManager.put("ComboBox.background", Color.BLACK);
-			UIManager.put("ComboBox.foreground", UIDefaults.LABEL_TEXT_COLOR);
-			UIManager.put("ComboBox.disabledForeground", Color.WHITE);
-			UIManager.put("ComboBox.disabledBackground", Color.GRAY);
-			// UIManager.put("ComboBox.font", Color.YELLOW);
-			UIManager.put("ComboBox.border", Color.YELLOW);
-			UIManager.put("opaque", false);
-			UIManager.put("ComboBox.squareButton", true);
-			UIManager.put("ComboBox.padding", new Insets(2, 2, 2, 2));
-
 			Object[] uiFactories = {
+					"TabbedPaneUI", TabbedPaneUiFactory.class.getName(),
 					"ScrollBarUI", ScrollbarUiFactory.class.getName(),
 					"BackgroundPanelUI", BackgroundPanelUiFactory.class.getName(),
 					"TextFieldUI", TextFieldUiFactory.class.getName(),
+					"FormattedTextFieldUI", TextFieldUiFactory.class.getName(),
 					"ButtonUI", ButtonUiFactory.class.getName(),
 					"LabelUI", LabelUiFactory.class.getName(),
 					"PanelUI", PanelUiFactory.class.getName(),
@@ -105,6 +97,7 @@ public class JSettlersLookAndFeel {
 					"TextAreaUI", TextAreaUiFactory.class.getName(),
 					"ComboBoxUI", ComboboxUiFactory.class.getName(),
 					"TableUI", TableUiFactory.class.getName(),
+					"SpinnerUI", SpinnerUiFactory.class.getName(),
 			};
 			UIManager.getDefaults().putDefaults(uiFactories);
 
@@ -127,6 +120,21 @@ public class JSettlersLookAndFeel {
 			UIManager.put("ClearSearchIcon.foregroundColor", Color.WHITE);
 			UIManager.put("ClearSearchIcon.backgroundColor", null);
 			UIManager.put("ClearSearchIcon.backgroundColorHover", null);
+
+			// Scrollbar
+			UIManager.put("ScrollBar.width", 20);
+
+			// ComboBox
+			UIManager.put("ComboBox.background", Color.BLACK);
+			UIManager.put("ComboBox.foreground", UIDefaults.LABEL_TEXT_COLOR);
+			UIManager.put("ComboBox.disabledForeground", Color.WHITE);
+			UIManager.put("ComboBox.disabledBackground", Color.GRAY);
+
+			// UIManager.put("ComboBox.font", Color.YELLOW);
+			UIManager.put("ComboBox.border", Color.YELLOW);
+			UIManager.put("opaque", false);
+			UIManager.put("ComboBox.squareButton", true);
+			UIManager.put("ComboBox.padding", new Insets(2, 2, 2, 2));
 
 		} catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
 			throw new JSettlersLookAndFeelExecption(e);
