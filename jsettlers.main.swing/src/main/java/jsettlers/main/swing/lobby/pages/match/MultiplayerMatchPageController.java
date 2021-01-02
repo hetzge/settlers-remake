@@ -37,7 +37,7 @@ import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.network.MatchPacket;
 import jsettlers.network.server.lobby.network.PlayerPacket;
 
-public class MultiplayerMatchPageController implements MatchPagePanel.Controller {
+public class MultiplayerMatchPageController implements MatchPageController {
 
 	private final UiController ui;
 	private final MatchPagePanel panel;
@@ -137,7 +137,7 @@ public class MultiplayerMatchPageController implements MatchPagePanel.Controller
 		this.client.removeListener(ENetworkKey.MATCH_STARTED);
 		this.client.removeListener(ENetworkKey.SYNCHRONOUS_TASK);
 		this.client.leaveMatch();
-		ui.getFrame().showMainMenu();
+		ui.showHomePage();
 	}
 
 	@Override

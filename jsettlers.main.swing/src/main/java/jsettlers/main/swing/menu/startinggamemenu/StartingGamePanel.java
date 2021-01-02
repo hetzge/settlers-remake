@@ -30,7 +30,7 @@ import jsettlers.common.menu.IStartingGame;
 import jsettlers.common.menu.IStartingGameListener;
 import jsettlers.graphics.localization.Labels;
 import jsettlers.graphics.map.draw.ImageProvider;
-import jsettlers.main.swing.JSettlersFrame;
+import jsettlers.main.swing.lobby.UiController;
 import jsettlers.main.swing.lookandfeel.ELFStyle;
 import jsettlers.main.swing.lookandfeel.components.BackgroundPanel;
 
@@ -40,11 +40,11 @@ import jsettlers.main.swing.lookandfeel.components.BackgroundPanel;
 public class StartingGamePanel extends BackgroundPanel implements IStartingGameListener {
 	private static final long serialVersionUID = -2242937805688362838L;
 
+	private final UiController ui;
 	private final JLabel messageLabel = new JLabel("", SwingConstants.CENTER);
-	private final JSettlersFrame settlersFrame;
 
-	public StartingGamePanel(JSettlersFrame settlersFrame) {
-		this.settlersFrame = settlersFrame;
+	public StartingGamePanel(UiController ui) {
+		this.ui = ui;
 		createStructure();
 		setStyle();
 		localize();
@@ -79,7 +79,7 @@ public class StartingGamePanel extends BackgroundPanel implements IStartingGameL
 
 	@Override
 	public IMapInterfaceConnector preLoadFinished(IStartedGame game) {
-		return settlersFrame.showStartedGame(game);
+		return ui.getFrame().showStartedGame(game);
 	}
 
 	@Override
@@ -91,8 +91,8 @@ public class StartingGamePanel extends BackgroundPanel implements IStartingGameL
 			errorMessage = Labels.getString("errordlg-start-failed") + " " + exception.getMessage();
 		}
 
-		JOptionPane.showMessageDialog(settlersFrame, errorMessage, Labels.getString("errordlg-header"), JOptionPane.ERROR_MESSAGE);
-		settlersFrame.showMainMenu();
+		ui.showAlert(errorMessage);
+		ui.showHomePage();
 	}
 
 	@Override

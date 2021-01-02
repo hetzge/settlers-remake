@@ -26,6 +26,7 @@ import javax.swing.SwingUtilities;
 
 import go.graphics.swing.contextcreator.BackendSelector;
 import jsettlers.graphics.localization.Labels;
+import jsettlers.main.swing.lobby.atoms.SettingsSlider;
 import jsettlers.main.swing.lookandfeel.ELFStyle;
 import jsettlers.main.swing.menu.mainmenu.MainMenuPanel;
 import jsettlers.main.swing.settings.SettingsManager;

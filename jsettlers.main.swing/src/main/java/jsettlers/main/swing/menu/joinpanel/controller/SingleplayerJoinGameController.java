@@ -45,7 +45,7 @@ public final class SingleplayerJoinGameController implements IJoinGameController
 
 	@Override
 	public void cancel() {
-		this.settlersFrame.showMainMenu();
+		// this.settlersFrame.showMainMenu();
 	}
 
 	@Override

@@ -8,7 +8,7 @@ import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.map.loading.list.MapList;
 import jsettlers.main.swing.menu.openpanel.EMapFilter;
 
-public abstract class BaseCreateMatchMapsPageController implements MapsPagePanel.Controller {
+public abstract class BaseCreateMatchMapsPageController implements MapsPageController {
 
 	@Override
 	public CompletableFuture<Collection<MapLoader>> load(EMapFilter filter, String query) {

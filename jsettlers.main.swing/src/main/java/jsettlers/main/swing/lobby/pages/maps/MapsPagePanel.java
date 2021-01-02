@@ -11,15 +11,12 @@ public class MapsPagePanel extends JPanel {
 
 	private final MapsPanel mapsPanel;
 
-	public MapsPagePanel(UiController ui, Controller controller) {
+	public MapsPagePanel(UiController ui, MapsPageController controller) {
 		setLayout(new BorderLayout());
 		add(this.mapsPanel = new MapsPanel(ui, controller), BorderLayout.CENTER);
 	}
 
 	public MapsPanel getMapsPanel() {
 		return mapsPanel;
-	}
-
-	public interface Controller extends MapsPanel.Controller {
 	}
 }

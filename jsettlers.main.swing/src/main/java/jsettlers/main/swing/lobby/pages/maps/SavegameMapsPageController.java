@@ -14,7 +14,7 @@ import jsettlers.main.JSettlersGame;
 import jsettlers.main.swing.lobby.UiController;
 import jsettlers.main.swing.menu.openpanel.EMapFilter;
 
-public class SavegameMapsPageController implements MapsPagePanel.Controller {
+public class SavegameMapsPageController implements MapsPageController {
 
 	private final UiController ui;
 
@@ -45,7 +45,7 @@ public class SavegameMapsPageController implements MapsPagePanel.Controller {
 			final IStartingGame startingGame = game.start();
 			this.ui.getFrame().showStartingGamePanel(startingGame);
 		} else {
-			throw new IllegalStateException("Map loader is not a NetworkGameMapLoader");
+			throw new IllegalStateException("Map loader is not a SavegameLoader: " + mapLoader);
 		}
 	}
 }

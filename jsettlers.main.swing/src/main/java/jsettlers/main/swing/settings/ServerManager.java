@@ -119,6 +119,10 @@ public class ServerManager {
 	public ListModel<ServerEntry> createListModel() {
 		return new ServerListModel();
 	}
+	
+	public List<ServerEntry> getServers() {
+		return servers;
+	}
 
 	private class ServerListModel extends AbstractListModel<ServerEntry> {
 

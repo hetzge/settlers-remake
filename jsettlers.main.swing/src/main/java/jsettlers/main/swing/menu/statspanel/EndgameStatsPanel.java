@@ -28,13 +28,14 @@ import jsettlers.common.player.IEndgameStatistic;
 import jsettlers.common.player.IInGamePlayer;
 import jsettlers.graphics.localization.Labels;
 import jsettlers.main.swing.JSettlersFrame;
+import jsettlers.main.swing.lobby.UiController;
 import jsettlers.main.swing.lookandfeel.ELFStyle;
 import jsettlers.main.swing.lookandfeel.components.BackgroundPanel;
 
 public class EndgameStatsPanel extends BackgroundPanel {
 	private JTable statsTable = new JTable();
 
-	public EndgameStatsPanel(JSettlersFrame settlersFrame) {
+	public EndgameStatsPanel(UiController ui) {
 		JPanel mainPane = new JPanel();
 		mainPane.setLayout(new BorderLayout());
 
@@ -44,7 +45,7 @@ public class EndgameStatsPanel extends BackgroundPanel {
 
 		JButton exit = new JButton(Labels.getString("stats-panel-exit"));
 		exit.putClientProperty(ELFStyle.KEY, ELFStyle.BUTTON_STONE);
-		exit.addActionListener(actionEvent -> settlersFrame.showMainMenu());
+		exit.addActionListener(actionEvent -> ui.showHomePage());
 		mainPane.add(exit, BorderLayout.SOUTH);
 
 		add(mainPane);
@@ -61,16 +62,17 @@ public class EndgameStatsPanel extends BackgroundPanel {
 
 	public void setGame(IStartedGame game) {
 		IInGamePlayer[] players = game.getAllInGamePlayers();
-		String[][] values = new String[players.length+1][];
+		String[][] values = new String[players.length + 1][];
 		values[0] = columns;
-		for(int i = 0; i != players.length; i++) values[i+1] = getPlayerRow(players[i]);
+		for (int i = 0; i != players.length; i++)
+			values[i + 1] = getPlayerRow(players[i]);
 
 		statsTable.setModel(new DefaultTableModel(values, columns));
 	}
 
 	private String[] getPlayerRow(IInGamePlayer player) {
 		String[] row = new String[5];
-		if(player == null) {
+		if (player == null) {
 			Arrays.fill(row, "");
 			return row;
 		}

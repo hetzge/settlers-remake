@@ -5,7 +5,6 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import jsettlers.common.menu.IStartingGame;
-import jsettlers.graphics.localization.Labels;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
@@ -17,7 +16,7 @@ import jsettlers.network.server.lobby.core.ELobbyResourceAmount;
 import jsettlers.network.server.lobby.core.Player;
 import jsettlers.network.server.lobby.core.UserId;
 
-public class SingleplayerMatchPageController implements MatchPagePanel.Controller {
+public class SingleplayerMatchPageController implements MatchPageController {
 
 	private final UiController ui;
 	private final MatchPagePanel panel;
@@ -48,7 +47,7 @@ public class SingleplayerMatchPageController implements MatchPagePanel.Controlle
 
 	@Override
 	public void cancel() {
-		ui.getFrame().showMainMenu();
+		ui.showHomePage();
 	}
 
 	@Override

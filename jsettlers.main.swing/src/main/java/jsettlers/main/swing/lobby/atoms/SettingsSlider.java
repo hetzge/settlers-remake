@@ -12,10 +12,9 @@
  * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
  * DEALINGS IN THE SOFTWARE.
  *******************************************************************************/
-package jsettlers.main.swing.menu.settingsmenu;
+package jsettlers.main.swing.lobby.atoms;
 
 import jsettlers.main.swing.lookandfeel.ELFStyle;
-import jsettlers.main.swing.menu.general.SettlersSlider;
 
 /**
  * Slider to select volume in settings

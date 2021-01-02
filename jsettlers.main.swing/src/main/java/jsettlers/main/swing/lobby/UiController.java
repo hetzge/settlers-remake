@@ -1,24 +1,23 @@
 package jsettlers.main.swing.lobby;
 
 import java.awt.Component;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.function.Consumer;
-import java.util.function.Supplier;
 
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
+import jsettlers.graphics.localization.Labels;
 import jsettlers.main.swing.JSettlersFrame;
 import jsettlers.main.swing.lobby.pages.Page;
+import jsettlers.main.swing.lobby.pages.mainmenu.DefaultMainMenuPageController;
+import jsettlers.main.swing.lobby.pages.mainmenu.MainMenuPagePanel;
+import jsettlers.main.swing.settings.ServerManager;
 
 public class UiController {
 
 	private final JSettlersFrame frame;
-	private final ExecutorService executorService;
 
 	public UiController(JSettlersFrame frame) {
 		this.frame = frame;
-		this.executorService = Executors.newSingleThreadExecutor();
 	}
 
 	public JSettlersFrame getFrame() {
@@ -30,12 +29,12 @@ public class UiController {
 		SwingUtilities.updateComponentTreeUI(this.frame);
 	}
 
-	public <T> void async(Supplier<T> request, Consumer<T> handler) {
-		this.executorService.submit(() -> {
-			final T value = request.get();
-			SwingUtilities.invokeLater(() -> {
-				handler.accept(value);
-			});
-		});
+	public void showHomePage() {
+		setPage("JSettlers", new MainMenuPagePanel(new DefaultMainMenuPageController(this, ServerManager.getInstance().getServers().get(0))));
 	}
+
+	public void showAlert(String message) {
+		JOptionPane.showMessageDialog(frame, message, Labels.getString("errordlg-header"), JOptionPane.ERROR_MESSAGE);
+	}
+
 }

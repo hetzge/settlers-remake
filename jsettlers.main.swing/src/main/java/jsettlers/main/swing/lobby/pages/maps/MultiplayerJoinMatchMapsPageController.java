@@ -16,7 +16,7 @@ import jsettlers.main.swing.menu.openpanel.EMapFilter;
 import jsettlers.network.client.NetworkClient;
 import jsettlers.network.server.lobby.core.MatchId;
 
-public class MultiplayerJoinMatchMapsPageController implements MapsPagePanel.Controller {
+public class MultiplayerJoinMatchMapsPageController implements MapsPageController {
 
 	private final UiController ui;
 	private final NetworkClient client;
@@ -52,7 +52,7 @@ public class MultiplayerJoinMatchMapsPageController implements MapsPagePanel.Con
 				this.ui.setPage(Labels.getString("join-game-panel-join-multi-player-game-title"), panel);
 			});
 		} else {
-			throw new IllegalStateException("Map loader is not a NetworkGameMapLoader");
+			throw new IllegalStateException("Map loader is not a NetworkGameMapLoader: " + mapLoader);
 		}
 	}
 }

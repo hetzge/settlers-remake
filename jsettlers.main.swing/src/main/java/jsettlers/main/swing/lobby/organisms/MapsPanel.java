@@ -24,7 +24,6 @@ public class MapsPanel extends JPanel {
 
 	private final JList<MapLoader> mapList;
 	private final DefaultListModel<MapLoader> model;
-	private final SearchTextField searchTextField;
 	private final Controller contoller;
 	private EMapFilter filter;
 	private String query;
@@ -39,21 +38,14 @@ public class MapsPanel extends JPanel {
 			this.filter = value;
 			load();
 		}));
-		box.add(this.searchTextField = new SearchTextField(value -> {
+		box.add(new SearchTextField(value -> {
 			this.query = value;
 			load();
 		}));
 		add(box, BorderLayout.NORTH);
 		add(new JScrollPane(this.mapList = new JList<>(this.model = new DefaultListModel<>())), BorderLayout.CENTER);
 		this.mapList.setCellRenderer(new MapListCellRenderer());
-		this.mapList.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent event) {
-				if (event.getClickCount() == 2) {
-					controller.selectMap(mapList.getSelectedValue());
-				}
-			}
-		});
+		this.mapList.addMouseListener(new MapsPanelDoubleClickMouseAdapter());
 		this.mapList.setOpaque(false);
 		load();
 	}
@@ -65,6 +57,15 @@ public class MapsPanel extends JPanel {
 	public void setMaps(Collection<MapLoader> mapLoaders) {
 		model.clear();
 		mapLoaders.forEach(model::addElement);
+	}
+
+	private class MapsPanelDoubleClickMouseAdapter extends MouseAdapter {
+		@Override
+		public void mouseClicked(MouseEvent event) {
+			if (event.getClickCount() == 2) {
+				MapsPanel.this.contoller.selectMap(mapList.getSelectedValue());
+			}
+		}
 	}
 
 	public interface Controller {

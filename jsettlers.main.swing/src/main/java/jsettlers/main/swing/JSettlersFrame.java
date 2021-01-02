@@ -42,11 +42,14 @@ import jsettlers.graphics.map.ETextDrawPosition;
 import jsettlers.graphics.map.MapContent;
 import jsettlers.logic.map.loading.MapLoader;
 import jsettlers.main.swing.lobby.UiController;
+import jsettlers.main.swing.lobby.pages.mainmenu.DefaultMainMenuPageController;
+import jsettlers.main.swing.lobby.pages.mainmenu.MainMenuPagePanel;
 import jsettlers.main.swing.lobby.pages.match.SingleplayerMatchPageController;
 import jsettlers.main.swing.menu.joinpanel.JoinGamePanel;
 import jsettlers.main.swing.menu.mainmenu.MainMenuPanel;
 import jsettlers.main.swing.menu.startinggamemenu.StartingGamePanel;
 import jsettlers.main.swing.menu.statspanel.EndgameStatsPanel;
+import jsettlers.main.swing.settings.ServerManager;
 import jsettlers.main.swing.settings.SettingsManager;
 
 /**
@@ -56,9 +59,8 @@ public class JSettlersFrame extends JFrame {
 	private static final long serialVersionUID = 2607082717493797224L;
 
 	private final UiController ui;
-	private final MainMenuPanel mainPanel;
-	private final EndgameStatsPanel endgameStatsPanel = new EndgameStatsPanel(this);
-	private final StartingGamePanel startingGamePanel = new StartingGamePanel(this);
+	private final EndgameStatsPanel endgameStatsPanel;
+	private final StartingGamePanel startingGamePanel;
 	private final SoundPlayer soundPlayer = new SwingSoundPlayer(SettingsManager.getInstance());
 
 	private Timer redrawTimer;
@@ -66,14 +68,14 @@ public class JSettlersFrame extends JFrame {
 	private AreaContainer areaContainer;
 
 	JSettlersFrame() throws HeadlessException {
-		ui = new UiController(this);
+		this.ui = new UiController(this);
+		this.endgameStatsPanel = new EndgameStatsPanel(ui);
+		this.startingGamePanel = new StartingGamePanel(ui);
 		setTitle("JSettlers - Version: " + CommitInfo.COMMIT_HASH_SHORT);
 
 		SettingsManager settingsManager = SettingsManager.getInstance();
 
-		mainPanel = new MainMenuPanel(ui);
-
-		showMainMenu();
+		ui.showHomePage();
 		setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
 		setPreferredSize(new Dimension(1200, 800));
 		pack();
@@ -123,10 +125,6 @@ public class JSettlersFrame extends JFrame {
 			redrawTimer.cancel();
 			redrawTimer = null;
 		}
-	}
-
-	public void showMainMenu() {
-		setNewContentPane(mainPanel);
 	}
 
 	public void showStartingGamePanel(IStartingGame startingGame) {

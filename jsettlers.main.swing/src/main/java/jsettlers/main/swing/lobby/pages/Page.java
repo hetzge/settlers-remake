@@ -5,6 +5,7 @@ import java.awt.Component;
 
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 
 import jsettlers.main.swing.lobby.atoms.Label;
 import jsettlers.main.swing.lookandfeel.components.BackgroundPanel;
@@ -16,6 +17,6 @@ public class Page extends BackgroundPanel {
 	public Page(String title, Component component) {
 		add(this.panel = new JPanel(new BorderLayout(20, 20)));
 		this.panel.add(new Label(title, JLabel.CENTER), BorderLayout.NORTH);
-		this.panel.add(component, BorderLayout.CENTER);
+		this.panel.add(new JScrollPane(component), BorderLayout.CENTER);
 	}
 }

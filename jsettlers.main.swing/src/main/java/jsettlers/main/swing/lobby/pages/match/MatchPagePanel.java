@@ -26,7 +26,7 @@ public class MatchPagePanel extends JPanel {
 	private final Button cancelButton;
 	private final Button startButton;
 
-	MatchPagePanel(Controller controller) {
+	MatchPagePanel(MatchPageController controller) {
 		setLayout(new BorderLayout(20, 20));
 		final JPanel westPanel = new JPanel();
 		westPanel.add(this.matchSettingsPanel = new MatchSettingsPanel(controller), BorderLayout.NORTH);
@@ -66,14 +66,5 @@ public class MatchPagePanel extends JPanel {
 
 	public void showStartButton(boolean visible) {
 		this.startButton.setVisible(visible);
-	}
-
-	public interface Controller extends PlayersPanel.Controller, ChatPanel.Controller, MatchSettingsPanel.Controller {
-
-		MatchPagePanel init();
-
-		void cancel();
-
-		void startMatch();
 	}
 }

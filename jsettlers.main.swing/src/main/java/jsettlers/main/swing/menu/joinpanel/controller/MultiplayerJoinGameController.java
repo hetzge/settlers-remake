@@ -163,7 +163,7 @@ public final class MultiplayerJoinGameController implements IJoinGameController 
 		this.client.removeListener(ENetworkKey.MATCH_STARTED);
 		this.client.removeListener(ENetworkKey.SYNCHRONOUS_TASK);
 		this.client.leaveMatch();
-		this.settlersFrame.showMainMenu();
+//		this.settlersFrame.showMainMenu();
 	}
 
 	@Override
