@@ -17,7 +17,7 @@ package go.graphics.swing.vulkan;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.PointerBuffer;
 import org.lwjgl.system.MemoryStack;
-import org.lwjgl.util.shaderc.Shaderc;
+import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.util.vma.VmaAllocationCreateInfo;
 import org.lwjgl.util.vma.VmaAllocatorCreateInfo;
 import org.lwjgl.util.vma.VmaVulkanFunctions;
@@ -74,13 +74,16 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.LongBuffer;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.function.BiFunction;
 
@@ -100,7 +103,13 @@ import static org.lwjgl.util.vma.Vma.*;
 public class VulkanUtils {
 
 
-	public static final int MAX_TEXTURE_COUNT = GLDrawContext.MAX_CACHE_COUNT + 5;
+	public static final int ALLOCATE_TEXTURE_SLOTS = 10;
+	public static final int ALLOCATE_UBO_SLOTS = 10;
+	public static final int ALLOCATE_SET_SLOTS = 20;
+
+	public static final int TEXTURE_POOL_SIZE = 10;
+	public static final int MULTI_POOL_SIZE = 10;
+
 	public static final int MAX_GLOBALTRANS_COUNT = 10;
 
 	public static List<String> defaultExtensionArray(boolean debug) {
@@ -130,6 +139,8 @@ public class VulkanUtils {
 					.sorted().findFirst(); // sorted insures that we prefer the KHRONOS layer if both (KHRONOS and LUNARG(old name)) are present
 			if(validationLayerOpt.isPresent()) {
 				layersPointer = stack.pointers(stack.UTF8(validationLayerOpt.get()));
+			} else {
+				System.err.println("Could not find any validation layer!");
 			}
 		}
 
@@ -175,9 +186,7 @@ public class VulkanUtils {
 	public static VkSurfaceFormatKHR findSurfaceFormat(VkSurfaceFormatKHR.Buffer allSurfaceFormats) {
 		// TODO proper SurfaceFormat finding
 		Optional<VkSurfaceFormatKHR> defaultSurfaceFormat = allSurfaceFormats.stream().filter(format -> format.format() == VK_FORMAT_B8G8R8A8_UNORM).findFirst();
-		if(defaultSurfaceFormat.isPresent()) return defaultSurfaceFormat.get();
-
-		return allSurfaceFormats.get(0);
+		return defaultSurfaceFormat.orElseGet(() -> allSurfaceFormats.get(0));
 	}
 
 	public static VkPhysicalDevice findPhysicalDevice(VkPhysicalDevice[] allPhysicalDevices) {
@@ -392,10 +401,9 @@ public class VulkanUtils {
 				.topology(topology);
 
 		VkSpecializationMapEntry.Buffer max_globalattr_count_at = VkSpecializationMapEntry.callocStack(2, stack);
-		max_globalattr_count_at.get(0).set(1, 0, 4)
-				.set(3, 4, 4);
+		max_globalattr_count_at.get(0).set(0, 0, 4);
 		VkSpecializationInfo max_globalattr_count = VkSpecializationInfo.callocStack(stack)
-				.pData(stack.calloc(8).putInt(0, MAX_GLOBALTRANS_COUNT).putInt(4, GLDrawContext.MAX_CACHE_COUNT))
+				.pData(stack.calloc(4).putInt(0, MAX_GLOBALTRANS_COUNT))
 				.pMapEntries(max_globalattr_count_at);
 
 
@@ -406,16 +414,9 @@ public class VulkanUtils {
 				.pSpecializationInfo(max_globalattr_count)
 				.pName(stack.UTF8("main"));
 
-		VkSpecializationMapEntry.Buffer max_texture_count_at = VkSpecializationMapEntry.callocStack(1, stack);
-		max_texture_count_at.get(0).set(0, 0, 4);
-		VkSpecializationInfo max_texture_count = VkSpecializationInfo.callocStack(stack)
-				.pData(stack.calloc(4).putInt(0, MAX_TEXTURE_COUNT))
-				.pMapEntries(max_texture_count_at);
-
 		stages.get(1).sType(VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO)
 				.stage(VK_SHADER_STAGE_FRAGMENT_BIT)
 				.module(fragShader)
-				.pSpecializationInfo(max_texture_count)
 				.pName(stack.UTF8("main"));
 
 		VkPipelineRasterizationStateCreateInfo rasterizationState = VkPipelineRasterizationStateCreateInfo.callocStack(stack)
@@ -535,17 +536,20 @@ public class VulkanUtils {
 		}
 	}
 
-	public static long createDescriptorPool(MemoryStack stack, VkDevice device, int pipelineCount) {
-		VkDescriptorPoolSize.Buffer sizes = VkDescriptorPoolSize.callocStack(2, stack);
-		sizes.get(0).set(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, pipelineCount*MAX_TEXTURE_COUNT);
-		sizes.get(1).set(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, pipelineCount*2+GLDrawContext.MAX_CACHE_COUNT);
+	public static long createDescriptorPool(VkDevice device, int maxSets, Map<Integer, Integer> descriptorAmounts) {
+		VkDescriptorPoolSize.Buffer sizes = VkDescriptorPoolSize.calloc(descriptorAmounts.keySet().size());
 
-		VkDescriptorPoolCreateInfo createInfo = VkDescriptorPoolCreateInfo.callocStack(stack)
+		for(Map.Entry<Integer, Integer> descriptorAmount : descriptorAmounts.entrySet()) {
+			sizes.get().set(descriptorAmount.getKey(), descriptorAmount.getValue());
+		}
+		sizes.rewind();
+
+		VkDescriptorPoolCreateInfo createInfo = VkDescriptorPoolCreateInfo.calloc()
 				.sType(VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO)
 				.pPoolSizes(sizes)
-				.maxSets(pipelineCount);
+				.maxSets(maxSets);
 
-		LongBuffer poolBfr = stack.callocLong(1);
+		LongBuffer poolBfr = BufferUtils.createLongBuffer(1);
 		if(vkCreateDescriptorPool(device, createInfo, null, poolBfr) != VK_SUCCESS) {
 			throw new Error("Could not create DescriptorPool.");
 		}
@@ -565,82 +569,69 @@ public class VulkanUtils {
 		return descSet.get(0);
 	}
 
+	private static byte[] readShader(String shaderName) {
+		try(InputStream in = VulkanUtils.class.getResourceAsStream(shaderName)) {
+			byte[] output = new byte[0];
+			int usedCapacity = 0;
+
+
+			byte[] buffer = new byte[1024];
+			do {
+				int read = in.read(buffer);
+
+				if(read == -1) {
+					byte[] realOutput = new byte[usedCapacity];
+					System.arraycopy(output, 0, realOutput, 0, usedCapacity);
+					return realOutput;
+				}
+
+				if(output.length - usedCapacity < read) {
+					byte[] newOutput = new byte[output.length*2 + read];
+					System.arraycopy(output, 0, newOutput, 0, usedCapacity);
+
+					output = newOutput;
+				}
+
+				System.arraycopy(buffer, 0, output, usedCapacity, read);
+				usedCapacity += read;
+
+			} while (true);
+
+		} catch (IOException e) {
+			throw new Error(e);
+		}
+	}
+
+	private static final int SHADER_CODE_ALIGN = 4;
+
 	public static long createShaderModule(MemoryStack stack, VkDevice device, String fileName) {
-		ByteBuffer code = compileShader(fileName);
-		if(code == null) throw new Error("Could not compile shader: " + fileName);
+		byte[] code = readShader(fileName);
+
+		ByteBuffer codeBuffer = BufferUtils.createByteBuffer(code.length);
+		//int padding = (int) (SHADER_CODE_ALIGN - (MemoryUtil.memAddress(codeBuffer) % SHADER_CODE_ALIGN));
+		//codeBuffer.position(padding);
+		codeBuffer.put(code);
+		codeBuffer.rewind();
 
 		LongBuffer modulePtr = stack.callocLong(1);
 
 		VkShaderModuleCreateInfo shaderModuleCreateInfo = VkShaderModuleCreateInfo.create()
 				.sType(VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO)
-				.pCode(code);
+				.pCode(codeBuffer);
+
 		if(vkCreateShaderModule(device, shaderModuleCreateInfo, null, modulePtr) != VK_SUCCESS) {
 			throw new Error("Could not create ShaderModule.");
 		}
 		return modulePtr.get(0);
 	}
 
-	public static ByteBuffer compileShader(String fileName) {
-		int shaderc_stage;
-		switch(fileName.split("\\.")[1]) {
-			case "vert":
-				shaderc_stage = Shaderc.shaderc_vertex_shader;
-				break;
-			case "geom":
-				shaderc_stage = Shaderc.shaderc_geometry_shader;
-				break;
-			case "frag":
-				shaderc_stage = Shaderc.shaderc_fragment_shader;
-				break;
-			default:
-				throw new Error(fileName + " not a valid shader file name!");
-		}
-
-		StringBuilder source = new StringBuilder();
-		try(InputStream shaderFile = VulkanUtils.class.getResourceAsStream("/vkglsl/"+fileName)) {
-			if (shaderFile == null) return null;
-			BufferedReader is = new BufferedReader(new InputStreamReader(shaderFile));
-
-			String line;
-			while ((line = is.readLine()) != null) source.append(line).append("\n");
-		} catch (IOException ex) {
-			throw new Error(ex);
-		}
-
-		long compiler = Shaderc.shaderc_compiler_initialize();
-		long options = Shaderc.shaderc_compile_options_initialize();
-		Shaderc.shaderc_compile_options_set_target_env(options, Shaderc.shaderc_target_env_vulkan, Shaderc.shaderc_env_version_vulkan_1_0);
-		long result = Shaderc.shaderc_compile_into_spv(compiler, source.toString(), shaderc_stage, fileName, "main", options);
-
-
-		String err = Shaderc.shaderc_result_get_error_message(result);
-		if(err != null && !err.isEmpty()) {
-			Shaderc.shaderc_result_release(result);
-			Shaderc.shaderc_compile_options_release(options);
-			Shaderc.shaderc_compiler_release(compiler);
-			throw new Error(fileName + ": " + err);
-		}
-
-		ByteBuffer data = Shaderc.shaderc_result_get_bytes(result);
-		// should not happen
-		if(data == null) throw new Error("shaderc failed to compile " + fileName + ".");
-
-		ByteBuffer dataCpy = BufferUtils.createByteBuffer(data.remaining());
-		while(data.hasRemaining()) dataCpy.put(data.get());
-		dataCpy.rewind();
-
-		Shaderc.shaderc_result_release(result);
-		Shaderc.shaderc_compile_options_release(options);
-		Shaderc.shaderc_compiler_release(compiler);
-
-		return dataCpy;
-	}
-
-	public static void createDescriptorSetLayout(MemoryStack stack, VkDevice device, VkDescriptorSetLayoutBinding.Buffer bindings, LongBuffer to) {
-		VkDescriptorSetLayoutCreateInfo createInfo = VkDescriptorSetLayoutCreateInfo.callocStack(stack)
+	public static long createDescriptorSetLayout(VkDevice device, VkDescriptorSetLayoutBinding.Buffer bindings) {
+		VkDescriptorSetLayoutCreateInfo createInfo = VkDescriptorSetLayoutCreateInfo.calloc()
 				.sType(VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO)
 				.pBindings(bindings);
-		vkCreateDescriptorSetLayout(device, createInfo, null, to);
+		LongBuffer output = BufferUtils.createLongBuffer(1);
+		vkCreateDescriptorSetLayout(device, createInfo, null, output);
+		return output.get(0);
 	}
 
 	public static long createAllocator(MemoryStack stack, VkInstance instance, VkDevice device, VkPhysicalDevice physicalDevice) {

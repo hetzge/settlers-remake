@@ -19,7 +19,6 @@ import java.nio.LongBuffer;
 import java.util.Arrays;
 
 import go.graphics.EPrimitiveType;
-import go.graphics.GLDrawContext;
 
 import static org.lwjgl.vulkan.VK10.*;
 
@@ -29,32 +28,58 @@ public abstract class VulkanPipeline {
 	protected VulkanDrawContext dc;
 
 	protected VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo; // MUST NOT BE ALLOCATED FROM STACK
-	protected LongBuffer setLayouts = BufferUtils.createLongBuffer(1).put(0, 0);
+	protected final LongBuffer setLayouts;
 	protected long descSet = 0;
 	protected ByteBuffer writtenPushConstantBfr;
 	protected ByteBuffer pushConstantBfr;
+	private VulkanDescriptorSetLayout ownDescriptorSetLayout = null;
 
-	public VulkanPipeline(MemoryStack stack, VulkanDrawContext dc, String prefix, long descPool, long renderPass, int primitive) {
+	private long[] writtenBfrs;
+	private long[] writtenDescSets;
+
+	public VulkanPipeline(MemoryStack stack,
+						  VulkanDrawContext dc,
+						  String prefix,
+						  VulkanDescriptorPool descPool,
+						  long renderPass,
+						  int primitive,
+						  VulkanDescriptorSetLayout... additionalDescSetLayout) {
 		this.dc = dc;
 
 		long vertShader = VK_NULL_HANDLE;
 		long fragShader = VK_NULL_HANDLE;
+
+		setLayouts = BufferUtils.createLongBuffer(1 + additionalDescSetLayout.length);
+		setLayouts.put(0);
+		for(VulkanDescriptorSetLayout additionalSetLayout : additionalDescSetLayout) {
+			setLayouts.put(additionalSetLayout.getLayout());
+		}
+		setLayouts.rewind();
+
 		try {
-			vertShader = VulkanUtils.createShaderModule(stack, dc.device, prefix + ".vert");
-			fragShader = VulkanUtils.createShaderModule(stack, dc.device, prefix + ".frag");
+			vertShader = VulkanUtils.createShaderModule(stack, dc.device, prefix + ".vert.spv");
+			fragShader = VulkanUtils.createShaderModule(stack, dc.device, prefix + ".frag.spv");
+
+			int pushConstantSize = getPushConstantSize();
+
+			VkPushConstantRange.Buffer pushConstantRanges = VkPushConstantRange.create(1);
+			pushConstantRanges.get(0).set(VK_SHADER_STAGE_ALL_GRAPHICS, 0, pushConstantSize);
 
 			pipelineLayoutCreateInfo = VkPipelineLayoutCreateInfo.create()
 					.sType(VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO)
-					.pPushConstantRanges(getPushConstantRanges());
+					.pPushConstantRanges(pushConstantRanges);
 
-			pushConstantBfr = BufferUtils.createByteBuffer(pipelineLayoutCreateInfo.pPushConstantRanges().size()-4);
-			writtenPushConstantBfr = BufferUtils.createByteBuffer(pushConstantBfr.capacity());
-
-			VkDescriptorSetLayoutBinding.Buffer bindings = getDescriptorSetLayoutBindings();
-			if(bindings != null) {
-				VulkanUtils.createDescriptorSetLayout(stack, dc.device, bindings, setLayouts);
-				pipelineLayoutCreateInfo.pSetLayouts(setLayouts);
+			if(pushConstantSize == 4) {
+				pushConstantBfr = null;
+				writtenPushConstantBfr = null;
+			} else {
+				pushConstantBfr = BufferUtils.createByteBuffer(pushConstantSize - 4);
+				writtenPushConstantBfr = BufferUtils.createByteBuffer(pushConstantSize - 4);
 			}
+
+			ownDescriptorSetLayout = new VulkanDescriptorSetLayout(dc.device, getDescriptorSetLayoutBindings());
+			setLayouts.put(0, ownDescriptorSetLayout.getLayout());
+			pipelineLayoutCreateInfo.pSetLayouts(setLayouts);
 
 			VkPipelineVertexInputStateCreateInfo inputStateCreateInfo = getVertexInputState(stack);
 			writtenBfrs = new long[inputStateCreateInfo.vertexBindingDescriptionCount()];
@@ -63,7 +88,10 @@ public abstract class VulkanPipeline {
 			pipelineLayout = VulkanUtils.createPipelineLayout(stack, dc.device, pipelineLayoutCreateInfo);
 			pipeline = VulkanUtils.createPipeline(stack, dc.device, primitive, pipelineLayout, renderPass, vertShader, fragShader, inputStateCreateInfo);
 
-			descSet = VulkanUtils.createDescriptorSet(stack, dc.device, descPool, setLayouts);
+			descSet = descPool.createNewSet(ownDescriptorSetLayout);
+
+			writtenDescSets = new long[1];
+			writtenDescSets[0] = descSet;
 		} finally {
 			if(vertShader != VK_NULL_HANDLE) VK10.vkDestroyShaderModule(dc.device, vertShader, null);
 			if(fragShader != VK_NULL_HANDLE) VK10.vkDestroyShaderModule(dc.device, fragShader, null);
@@ -72,14 +100,14 @@ public abstract class VulkanPipeline {
 		}
 	}
 
-	protected abstract VkPushConstantRange.Buffer getPushConstantRanges();
+	protected abstract int getPushConstantSize();
 	protected abstract VkPipelineVertexInputStateCreateInfo getVertexInputState(MemoryStack stack);
 	protected abstract VkDescriptorSetLayoutBinding.Buffer getDescriptorSetLayoutBindings();
 
 	public void destroy() {
 		if(pipeline != VK_NULL_HANDLE) vkDestroyPipeline(dc.device, pipeline, null);
 		if(pipelineLayout != VK_NULL_HANDLE) vkDestroyPipelineLayout(dc.device, pipelineLayout, null);
-		if(setLayouts != null) while(setLayouts.hasRemaining()) vkDestroyDescriptorSetLayout(dc.device, setLayouts.get(), null);
+		if(ownDescriptorSetLayout != null) ownDescriptorSetLayout.destroy();
 	}
 
 	private VkViewport.Buffer viewportUpdate = VkViewport.create(1);
@@ -93,7 +121,7 @@ public abstract class VulkanPipeline {
 
 	public void bind(VkCommandBuffer commandBuffer, long frame) {
 		vkCmdBindPipeline(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
-		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, new long[] {descSet}, null);
+		vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, writtenDescSets, null);
 
 		if(writtenBfrs.length>0 && writtenBfrs[0] != VK_NULL_HANDLE) {
 			vkCmdBindVertexBuffers(commandBuffer, 0, writtenBfrs, new long[writtenBfrs.length]);
@@ -106,10 +134,14 @@ public abstract class VulkanPipeline {
 		}
 
 		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_ALL_GRAPHICS, 0, new int[] {dc.globalAttrIndex});
-		vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_ALL_GRAPHICS, 4, writtenPushConstantBfr);
+		if(writtenPushConstantBfr != null) {
+			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_ALL_GRAPHICS, 4, writtenPushConstantBfr);
+		}
 	}
 
 	public void pushConstants(VkCommandBuffer commandBuffer) {
+		if(pushConstantBfr == null) throw new IllegalStateException("This pipeline has no special push constants!");
+
 		if(pushConstantBfr.compareTo(writtenPushConstantBfr) != 0) {
 			vkCmdPushConstants(commandBuffer, pipelineLayout, VK_SHADER_STAGE_ALL_GRAPHICS, 4, pushConstantBfr);
 			writtenPushConstantBfr.put(pushConstantBfr);
@@ -126,8 +158,6 @@ public abstract class VulkanPipeline {
 		vkUpdateDescriptorSets(dc.device, write, null);
 	}
 
-	private long[] writtenBfrs;
-
 	public void bindVertexBuffers(VkCommandBuffer commandBuffer, long... bfrs) {
 		for(int i = 0; i != bfrs.length; i++) {
 			if(writtenBfrs[i] != bfrs[i]) {
@@ -138,21 +168,29 @@ public abstract class VulkanPipeline {
 		}
 	}
 
+	public void bindDescSets(VkCommandBuffer commandBuffer, long... descSets) {
+		long[] newWrittenDescSets = new long[1 + descSets.length];
+		newWrittenDescSets[0] = descSet;
+		System.arraycopy(descSets, 0, newWrittenDescSets, 1, descSets.length);
+
+		if(!Arrays.equals(writtenDescSets, newWrittenDescSets)) {
+			writtenDescSets = newWrittenDescSets;
+			vkCmdBindDescriptorSets(commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineLayout, 0, writtenDescSets, null);
+		}
+	}
+
 	public static class BackgroundPipeline extends VulkanPipeline {
 
 		@Override
-		protected VkPushConstantRange.Buffer getPushConstantRanges() {
-			VkPushConstantRange.Buffer pushConstantRanges = VkPushConstantRange.create(1);
-			pushConstantRanges.get(0).set(VK_SHADER_STAGE_ALL_GRAPHICS, 0, 2*4);
-			return pushConstantRanges;
+		protected int getPushConstantSize() {
+			return 4;
 		}
 
 		@Override
 		protected VkDescriptorSetLayoutBinding.Buffer getDescriptorSetLayoutBindings() {
-			VkDescriptorSetLayoutBinding.Buffer bindings = VkDescriptorSetLayoutBinding.calloc(3);
+			VkDescriptorSetLayoutBinding.Buffer bindings = VkDescriptorSetLayoutBinding.calloc(2);
 			bindings.get(0).set(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null);
-			bindings.get(1).set(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VulkanUtils.MAX_TEXTURE_COUNT, VK_SHADER_STAGE_FRAGMENT_BIT, null);
-			bindings.get(2).set(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null); // height matrix
+			bindings.get(1).set(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null); // height matrix
 			return bindings;
 		}
 
@@ -173,26 +211,23 @@ public abstract class VulkanPipeline {
 					.pVertexBindingDescriptions(bindings);
 		}
 
-		public BackgroundPipeline(MemoryStack stack, VulkanDrawContext dc, long descPool, long renderPass) {
-			super(stack, dc, "background", descPool, renderPass, EPrimitiveType.Triangle);
+		public BackgroundPipeline(MemoryStack stack, VulkanDrawContext dc, VulkanDescriptorPool descPool, long renderPass) {
+			super(stack, dc, "background", descPool, renderPass, EPrimitiveType.Triangle, dc.textureDescLayout);
 		}
 	}
 
 	public static class UnifiedPipeline extends VulkanPipeline {
 
 		@Override
-		protected VkPushConstantRange.Buffer getPushConstantRanges() {
-			VkPushConstantRange.Buffer pushConstantRanges = VkPushConstantRange.create(1);
-			pushConstantRanges.get(0).set(VK_SHADER_STAGE_ALL_GRAPHICS, 0, (2*4+2+4)*4);//(4*4+2+3)*4);
-			return pushConstantRanges;
+		protected int getPushConstantSize() {
+			return (2*4+2+4)*4;
 		}
 
 		@Override
 		protected VkDescriptorSetLayoutBinding.Buffer getDescriptorSetLayoutBindings() {
-			VkDescriptorSetLayoutBinding.Buffer bindings = VkDescriptorSetLayoutBinding.calloc(3);
+			VkDescriptorSetLayoutBinding.Buffer bindings = VkDescriptorSetLayoutBinding.calloc(2);
 			bindings.get(0).set(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null);
-			bindings.get(1).set(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VulkanUtils.MAX_TEXTURE_COUNT, VK_SHADER_STAGE_FRAGMENT_BIT, null);
-			bindings.get(2).set(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null); // shadow depth
+			bindings.get(1).set(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null); // shadow depth
 			return bindings;
 		}
 
@@ -213,18 +248,16 @@ public abstract class VulkanPipeline {
 					.pVertexBindingDescriptions(bindings);
 		}
 
-		public UnifiedPipeline(MemoryStack stack, VulkanDrawContext dc, long descPool, long renderPass, int primitive) {
-			super(stack, dc, "unified", descPool, renderPass, primitive);
+		public UnifiedPipeline(MemoryStack stack, VulkanDrawContext dc, VulkanDescriptorPool descPool, long renderPass, int primitive) {
+			super(stack, dc, "unified", descPool, renderPass, primitive, dc.textureDescLayout);
 		}
 	}
 
 	public static class UnifiedArrayPipeline extends VulkanPipeline {
 
 		@Override
-		protected VkPushConstantRange.Buffer getPushConstantRanges() {
-			VkPushConstantRange.Buffer pushConstantRanges = VkPushConstantRange.create(1);
-			pushConstantRanges.get(0).set(VK_SHADER_STAGE_ALL_GRAPHICS, 0, 2*4);
-			return pushConstantRanges;
+		protected int getPushConstantSize() {
+			return 4;
 		}
 
 		@Override
@@ -249,25 +282,22 @@ public abstract class VulkanPipeline {
 
 		@Override
 		protected VkDescriptorSetLayoutBinding.Buffer getDescriptorSetLayoutBindings() {
-			VkDescriptorSetLayoutBinding.Buffer bindings = VkDescriptorSetLayoutBinding.calloc(3);
+			VkDescriptorSetLayoutBinding.Buffer bindings = VkDescriptorSetLayoutBinding.calloc(2);
 			bindings.get(0).set(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null);
-			bindings.get(1).set(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VulkanUtils.MAX_TEXTURE_COUNT, VK_SHADER_STAGE_FRAGMENT_BIT, null);
-			bindings.get(2).set(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null); // shadow depth
+			bindings.get(1).set(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null); // shadow depth
 			return bindings;
 		}
 
-		public UnifiedArrayPipeline(MemoryStack stack, VulkanDrawContext dc, long descPool, long renderPass) {
-			super(stack, dc, "unified-array", descPool, renderPass, EPrimitiveType.Quad);
+		public UnifiedArrayPipeline(MemoryStack stack, VulkanDrawContext dc, VulkanDescriptorPool descPool, long renderPass) {
+			super(stack, dc, "unified-array", descPool, renderPass, EPrimitiveType.Quad, dc.textureDescLayout);
 		}
 	}
 
     public static class UnifiedMultiPipeline extends VulkanPipeline {
 
 		@Override
-		protected VkPushConstantRange.Buffer getPushConstantRanges() {
-			VkPushConstantRange.Buffer pushConstantRanges = VkPushConstantRange.create(1);
-			pushConstantRanges.get(0).set(VK_SHADER_STAGE_ALL_GRAPHICS, 0, 3*4);
-			return pushConstantRanges;
+		protected int getPushConstantSize() {
+			return 4;
 		}
 
 		@Override
@@ -289,16 +319,14 @@ public abstract class VulkanPipeline {
 
 		@Override
 		protected VkDescriptorSetLayoutBinding.Buffer getDescriptorSetLayoutBindings() {
-			VkDescriptorSetLayoutBinding.Buffer bindings = VkDescriptorSetLayoutBinding.calloc(4);
+			VkDescriptorSetLayoutBinding.Buffer bindings = VkDescriptorSetLayoutBinding.calloc(2);
 			bindings.get(0).set(0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null);
-			bindings.get(1).set(1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, VulkanUtils.MAX_TEXTURE_COUNT, VK_SHADER_STAGE_FRAGMENT_BIT, null);
-			bindings.get(2).set(2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null); // shadow depth
-			bindings.get(3).set(3, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, GLDrawContext.MAX_CACHE_COUNT, VK_SHADER_STAGE_ALL_GRAPHICS, null); // geometry
+			bindings.get(1).set(1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL_GRAPHICS, null); // shadow depth
 			return bindings;
 		}
 
-		public UnifiedMultiPipeline(MemoryStack stack, VulkanDrawContext dc, long descPool, long renderPass) {
-			super(stack, dc, "unified-multi", descPool, renderPass, EPrimitiveType.Quad);
+		public UnifiedMultiPipeline(MemoryStack stack, VulkanDrawContext dc, VulkanDescriptorPool descPool, long renderPass) {
+			super(stack, dc, "unified-multi", descPool, renderPass, EPrimitiveType.Quad, dc.textureDescLayout, dc.multiDescLayout);
 		}
-    }
+	}
 }

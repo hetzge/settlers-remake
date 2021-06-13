@@ -25,4 +25,10 @@ dependencies {
 
 	testImplementation project(':jsettlers.testutils')
 	testImplementation project(':jsettlers.main.swing')
+
+	implementation 'javax.xml.bind:jaxb-api:2.3.1'
+}
+
+compileJava {
+	dependsOn tasks.getByPath(":jsettlers.common:copyMainResources")
 }

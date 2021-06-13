@@ -15,17 +15,14 @@
 
 package jsettlers.algorithms.simplebehaviortree.nodes;
 
-import java8.util.Optional;
 import jsettlers.algorithms.simplebehaviortree.Composite;
 import jsettlers.algorithms.simplebehaviortree.Node;
 import jsettlers.algorithms.simplebehaviortree.NodeStatus;
 import jsettlers.algorithms.simplebehaviortree.Tick;
 
-import static java8.util.stream.StreamSupport.stream;
+import static jsettlers.algorithms.simplebehaviortree.NodeStatus.*;
 
 public class DynamicGuardSelector<T> extends Composite<T> {
-
-	private Guard<T> runningChild = null;
 
 	public DynamicGuardSelector(Guard<T>[] childrenGuards) {
 		super(childrenGuards);
@@ -37,14 +34,21 @@ public class DynamicGuardSelector<T> extends Composite<T> {
 			Guard<T> guard = (Guard<T>)child;
 
 			if(guard.checkGuardCondition(tick)) {
+				Node<T> runningChild = tick.getProperty(getId());
 				if(runningChild != null && runningChild != guard) runningChild.close(tick);
 
-				runningChild = guard;
 				NodeStatus returnStatus = guard.execute(tick);
 
-				if(returnStatus != NodeStatus.RUNNING) runningChild = null;
-
-				return returnStatus;
+				switch (returnStatus) {
+					case RUNNING:
+						tick.setProperty(getId(), guard);
+						return RUNNING;
+					case SUCCESS:
+						return SUCCESS;
+						// continue with next node
+					case FAILURE:
+						break;
+				}
 			}
 		}
 
@@ -52,7 +56,13 @@ public class DynamicGuardSelector<T> extends Composite<T> {
 	}
 
 	@Override
+	protected void onOpen(Tick<T> tick) {
+		tick.setProperty(getId(), null);
+	}
+
+	@Override
 	protected void onClose(Tick<T> tick) {
+		Node<T> runningChild = tick.getProperty(getId());
 		if(runningChild != null) runningChild.close(tick);
 	}
 }

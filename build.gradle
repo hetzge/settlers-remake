@@ -4,25 +4,26 @@ apply plugin: 'java'
 ext {
     streamSupportVersion = '1.5.4'
 
-    androidAnnotationsVersion = '4.4.0'
+    androidAnnotationsVersion = '4.8.0'
     androidSupportLibraryVersion = '27.1.0'
 
-    androidBuildToolsVersion = '27.0.3'
+    androidBuildToolsVersion = '30.0.3'
     androidCompileSdkVersion = 27
     androidMinSdkVersion = 19
     androidTargetSdkVersion = 26
+
+    lwjglVersion = "3.2.3"
 }
 
 buildscript {
     repositories {
-        jcenter()
         mavenCentral()
         google()
     }
     dependencies {
         classpath 'org.eclipse.jgit:org.eclipse.jgit:3.1.0.201310021548-r'
         if (findProject(':jsettlers.main.android')) {
-            classpath 'com.android.tools.build:gradle:3.1.3'
+            classpath 'com.android.tools.build:gradle:4.2.0'
         }
     }
 }
@@ -30,7 +31,6 @@ buildscript {
 allprojects {
     repositories {
         mavenCentral()
-        jcenter()
         google()
         maven { url "https://raw.github.com/laenger/maven-releases/master/releases" }
         maven { url "https://maven.google.com" }
@@ -42,13 +42,21 @@ allprojects {
 subprojects {
 
     plugins.withType(JavaPlugin).whenPluginAdded {
+        // we don't support older versions, so equals to java 8 means before java 9.
+        boolean isJava8 = JavaVersion.current() == JavaVersion.VERSION_1_8;
         compileJava {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
+            if(!isJava8) {
+                options.release = 8
+            }
         }
         compileTestJava {
             sourceCompatibility = JavaVersion.VERSION_1_8
             targetCompatibility = JavaVersion.VERSION_1_8
+            if(!isJava8) {
+                options.release = 8
+            }
         }
 
         task copyMainResources(type: Copy) {
@@ -109,7 +117,7 @@ subprojects {
 task run(dependsOn: ':jsettlers.main.swing:run') {
     doLast {
         // We do not need any more tasks.
-        tasks.getAsMap().values().each { Task task ->
+        tasks.getAsMap().values().each { task ->
             if (!task.state.executed && task != tasks.getByPath(":run")) task.onlyIf {
                 false
             }
@@ -164,8 +172,8 @@ task releaseJSettlers(type: Zip) {
         }
     }
 
-    destinationDir releaseDir
-    baseName "JSettlers"
+    destinationDirectory.set(releaseDir);
+    archiveBaseName.set("JSettlers");
 }
 
 
@@ -183,8 +191,8 @@ if (findProject(':jsettlers.main.android')) {
             rename 'jsettlers.main.android-debug.apk', 'JSettlers-Android.apk'
         }
 
-        destinationDir releaseDir
-        baseName "JSettlers-Android"
+        destinationDirectory.set(releaseDir);
+        archiveBaseName.set("JSettlers-Android");
     }
 }
 

@@ -21,6 +21,8 @@ import java.util.BitSet;
 import java.util.Date;
 import java.util.Set;
 
+import java8.util.Comparators;
+import java8.util.Objects;
 import java8.util.Optional;
 import jsettlers.algorithms.borders.BordersThread;
 import jsettlers.algorithms.borders.IBordersThreadGrid;
@@ -72,6 +74,8 @@ import jsettlers.common.position.RelativePoint;
 import jsettlers.common.position.ShortPoint2D;
 import jsettlers.common.utils.collections.IPredicate;
 import jsettlers.common.utils.coordinates.CoordinateStream;
+import jsettlers.common.utils.mutables.Mutable;
+import jsettlers.common.utils.mutables.MutableInt;
 import jsettlers.input.IGuiInputGrid;
 import jsettlers.input.PlayerState;
 import jsettlers.logic.DockPosition;
@@ -106,6 +110,7 @@ import jsettlers.logic.map.grid.partition.manager.materials.interfaces.IOfferEmp
 import jsettlers.logic.map.grid.partition.manager.materials.offers.EOfferPriority;
 import jsettlers.logic.map.grid.partition.manager.materials.requests.MaterialRequestObject;
 import jsettlers.logic.map.grid.partition.manager.settings.MaterialProductionSettings;
+import jsettlers.logic.map.grid.partition.manager.settings.ProfessionSettings;
 import jsettlers.logic.map.loading.data.IMapData;
 import jsettlers.logic.map.loading.data.objects.BuildingMapDataObject;
 import jsettlers.logic.map.loading.data.objects.IPlayerIdProvider;
@@ -118,13 +123,15 @@ import jsettlers.logic.map.loading.list.MapList;
 import jsettlers.logic.map.loading.newmap.MapFileHeader;
 import jsettlers.logic.map.loading.newmap.MapFileHeader.MapType;
 import jsettlers.logic.movable.Movable;
+import jsettlers.logic.movable.civilian.LegacyBuildingWorkerMovable;
 import jsettlers.logic.movable.interfaces.AbstractMovableGrid;
 import jsettlers.logic.movable.interfaces.IAttackable;
+import jsettlers.logic.movable.interfaces.IAttackableHumanMovable;
 import jsettlers.logic.movable.interfaces.IAttackableMovable;
-import jsettlers.logic.movable.interfaces.ICivilianMovable;
 import jsettlers.logic.movable.interfaces.IFerryMovable;
 import jsettlers.logic.movable.interfaces.ILogicMovable;
 import jsettlers.logic.movable.interfaces.ISoldierMovable;
+import jsettlers.logic.movable.other.AttackableHumanMovable;
 import jsettlers.logic.objects.arrow.ArrowObject;
 import jsettlers.logic.objects.stack.StackMapObject;
 import jsettlers.logic.player.Player;
@@ -170,6 +177,12 @@ public final class MainGrid implements Serializable {
 
 		this.flagsGrid = new FlagsGrid(width, height);
 		this.movablePathfinderGrid = new MovablePathfinderGrid();
+		// prevents StackOverflowErrors
+		ArrowObject.class.getSimpleName();
+		IAttackableHumanMovable.class.getSimpleName();
+		AttackableHumanMovable.class.getSimpleName();
+		LegacyBuildingWorkerMovable.class.getSimpleName();
+
 		MapObjectsManagerGrid grid = new MapObjectsManagerGrid();
 		this.mapObjectsManager = new MapObjectsManager(grid);
 
@@ -493,11 +506,6 @@ public final class MainGrid implements Serializable {
 		}
 
 		EnclosedBlockedAreaFinderAlgorithm.checkLandmark(enclosedBlockedAreaFinderGrid, x, y);
-
-		ILogicMovable movable = movableGrid.getMovableAt(x, y);
-		if (movable instanceof ICivilianMovable) {
-			((ICivilianMovable)movable).checkPlayerOfPosition();
-		}
 	}
 
 	final boolean isValidPosition(IPathCalculatable pathCalculatable, int x, int y) {
@@ -1502,33 +1510,40 @@ public final class MainGrid implements Serializable {
 												final short maxSearchRadius, final boolean includeTowers) {
 			boolean isBowman = searchingAttackable.getMovableType().isBowman();
 
-			IAttackable enemy = getEnemyInSearchArea(searchingAttackable.getPlayer(), new HexGridArea(position.x, position.y, minSearchRadius,
+			IAttackable enemy = searchEnemyInArea(position, searchingAttackable.getPlayer(), new HexGridArea(position.x, position.y, minSearchRadius,
 				maxSearchRadius
 			), isBowman, includeTowers);
 			if (includeTowers && !isBowman && enemy == null) {
-				enemy = getEnemyInSearchArea(searchingAttackable.getPlayer(), new HexGridArea(position.x, position.y, maxSearchRadius, Constants.TOWER_ATTACKABLE_SEARCH_RADIUS), false, true);
+				enemy = searchEnemyInArea(position, searchingAttackable.getPlayer(), new HexGridArea(position.x, position.y, maxSearchRadius, Constants.TOWER_ATTACKABLE_SEARCH_RADIUS), false, true);
 			}
 
 			return enemy;
 		}
 
-		private IAttackable getEnemyInSearchArea(IPlayer searchingPlayer, HexGridArea area, boolean isBowman, boolean includeTowers) {
-			return area.stream().filterBounds(width, height).iterateForResult((x, y) -> {
-				ILogicMovable currMovable = movableGrid.getMovableAt(x, y);
+		private IAttackable searchEnemyInArea(ShortPoint2D position, IPlayer searchingPlayer, HexGridArea area, boolean isBowman, boolean includeTowers) {
+			MutableInt minDistance = new MutableInt(Integer.MAX_VALUE);
+			Mutable<IAttackable> result = new Mutable<>();
 
-				IAttackable currAttackable = null;
-				if (includeTowers && !isBowman && currMovable == null) {
-					currAttackable = (IAttackable) objectsGrid.getMapObjectAt(x, y, EMapObjectType.ATTACKABLE_TOWER);
-				} else if(currMovable instanceof IAttackableMovable) {
-					currAttackable = (IAttackableMovable) currMovable;
-				}
+			area.stream().filterBounds(width, height)
+					.map((x, y) -> {
+						ILogicMovable currMovable = movableGrid.getMovableAt(x, y);
 
-				if (currAttackable != null && MovableGrid.isEnemy(searchingPlayer, currAttackable)) {
-					return Optional.of(currAttackable);
-				} else {
-					return Optional.empty();
-				}
-			}).orElse(null);
+						if(includeTowers && !isBowman && currMovable == null) {
+							return (IAttackable) objectsGrid.getMapObjectAt(x, y, EMapObjectType.ATTACKABLE_TOWER);
+						} else if(currMovable instanceof IAttackableMovable) {
+							return (IAttackable) currMovable;
+						}
+						return null;
+					}).filter(Objects::nonNull)
+					.filter(attackable -> MovableGrid.isEnemy(searchingPlayer, attackable))
+					.forEach(attackable -> {
+						int attackDistance = attackable.getPosition().getOnGridDistTo(position);
+						if(attackDistance < minDistance.value) {
+							minDistance.value = attackDistance;
+							result.object = attackable;
+						}
+					});
+			return result.object;
 		}
 
 		@Override
@@ -2150,6 +2165,24 @@ public final class MainGrid implements Serializable {
 		public void setAcceptedStockMaterial(ShortPoint2D position, EMaterialType materialType, boolean accepted) {
 			partitionsGrid.getPartitionSettings(position).setAcceptedStockMaterial(materialType, accepted);
 		}
+		
+		@Override
+		public void changeMovableRatio(ShortPoint2D position, EMovableType moveableType, boolean add) {
+			System.out.println(String.format("%s ratio at %s for '%s'", add?"Increase":"Decrease", position, moveableType));
+
+			float delta = add? 0.05f : -0.05f;
+
+			ProfessionSettings professionSettings = partitionsGrid.getPartitionSettings(position).getProfessionSettings();
+			if (moveableType == EMovableType.BEARER) {
+				professionSettings.changeMinBearerRatio(delta);
+			} else if (moveableType == EMovableType.DIGGER) {
+				professionSettings.changeMaxDiggerRatio(delta);
+			} else if (moveableType == EMovableType.BRICKLAYER) {
+				professionSettings.changeMaxBricklayerRatio(delta);
+			} else {
+				throw new IllegalArgumentException(String.format("The moveable type '%s' does not support to set the ratio.", moveableType));
+			}
+		}		
 	}
 
 	/**

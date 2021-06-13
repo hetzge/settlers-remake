@@ -1,5 +1,6 @@
 package jsettlers.logic.movable.other;
 
+import jsettlers.algorithms.simplebehaviortree.Root;
 import jsettlers.common.action.EMoveToType;
 import jsettlers.common.movable.EMovableType;
 import jsettlers.common.position.ShortPoint2D;
@@ -12,25 +13,49 @@ import jsettlers.logic.player.Player;
 
 public class AttackableHumanMovable extends AttackableMovable implements IAttackableHumanMovable {
 
-	public AttackableHumanMovable(AbstractMovableGrid grid, EMovableType movableType, ShortPoint2D position, Player player, Movable movable) {
-		super(grid, movableType, position, player, movable);
+	protected EMoveToType nextMoveToType;
+	protected ShortPoint2D nextTarget = null;
+	protected boolean goingToHealer = false;
+
+	public AttackableHumanMovable(AbstractMovableGrid grid, EMovableType movableType, ShortPoint2D position, Player player, Movable movable, Root<? extends AttackableHumanMovable> behaviour) {
+		super(grid, movableType, position, player, movable, behaviour);
 	}
 
 	@Override
 	public void leaveFerryAt(ShortPoint2D position) {
 		this.position = position;
 		setState(Movable.EMovableState.DOING_NOTHING);
-		requestedTargetPosition = null;
+
 		grid.enterPosition(position, this, true);
 	}
 
 	@Override
-	public void moveToFerry(IFerryMovable ferry, ShortPoint2D entrancePosition) {
-		this.ferryToEnter = ferry;
-		moveTo(entrancePosition, EMoveToType.FORCED);
+	public void moveTo(ShortPoint2D targetPosition, EMoveToType moveToType) {
+		if(!playerControlled) return;
+
+		nextTarget = targetPosition;
+		nextMoveToType = moveToType;
+		goingToHealer = false;
 	}
 
-	private ShortPoint2D targetingHealSpot = null;
+	@Override
+	public void stopOrStartWorking(boolean stop) {
+		if(!playerControlled) return;
+
+		nextTarget = position;
+		nextMoveToType = stop? EMoveToType.FORCED : EMoveToType.DEFAULT;
+		goingToHealer = false;
+	}
+
+	@Override
+	public void moveToFerry(IFerryMovable ferry, ShortPoint2D entrancePosition) {
+		if(!playerControlled) return;
+
+		ferryToEnter = ferry;
+		nextTarget = entrancePosition;
+		nextMoveToType = EMoveToType.FORCED;
+		goingToHealer = false;
+	}
 
 	@Override
 	public void heal() {
@@ -38,25 +63,30 @@ public class AttackableHumanMovable extends AttackableMovable implements IAttack
 	}
 
 	@Override
+	public boolean isGoingToTreatment() {
+		return goingToHealer;
+	}
+
+	@Override
 	public boolean needsTreatment() {
 		if(health == getMovableType().getHealth()) return false;
-		if(path != null && path.getTargetPosition().equals(targetingHealSpot)) return false;
+		if(!playerControlled) return false;
 		return true;
 	}
 
 	@Override
 	public boolean pingWounded(IHealerMovable healer) {
-		if(!healer.requestTreatment(this)) return false;
+		if(!needsTreatment() || isGoingToTreatment()) return false;
 
-		targetingHealSpot = new ShortPoint2D(healer.getPosition().x+2, healer.getPosition().y+2);
-		moveTo(targetingHealSpot, EMoveToType.FORCED);
+		nextTarget = healer.getHealSpot();
+		nextMoveToType = EMoveToType.FORCED;
+		goingToHealer = true;
 		return true;
 	}
 
 	@Override
 	public void defectTo(Player player) {
 		Movable.createMovable(getMovableType(), player, position, grid, this);
-		killMovable();
 	}
 
 	@Override

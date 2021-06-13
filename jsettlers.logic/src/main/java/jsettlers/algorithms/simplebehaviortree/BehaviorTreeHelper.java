@@ -3,7 +3,10 @@ package jsettlers.algorithms.simplebehaviortree;
 import jsettlers.algorithms.simplebehaviortree.nodes.DynamicGuardSelector;
 import jsettlers.algorithms.simplebehaviortree.nodes.IGetPropertyProducer;
 import jsettlers.algorithms.simplebehaviortree.nodes.ISetPropertyConsumer;
+import jsettlers.algorithms.simplebehaviortree.nodes.IgnoreFailure;
 import jsettlers.algorithms.simplebehaviortree.nodes.Property;
+import jsettlers.algorithms.simplebehaviortree.nodes.RepeatCount;
+import jsettlers.algorithms.simplebehaviortree.nodes.ResetAfter;
 import jsettlers.algorithms.simplebehaviortree.nodes.Sleep;
 import jsettlers.algorithms.simplebehaviortree.nodes.Action;
 import jsettlers.algorithms.simplebehaviortree.nodes.AlwaysFail;
@@ -31,12 +34,12 @@ public final class BehaviorTreeHelper {
 		return debug(debugMessage, action(action));
 	}
 
-	public static <T> Action<T> action(INodeStatusActionFunction<T> action) {
+	public static <T> Action<T> action2(INodeStatusActionFunction<T> action) {
 		return new Action<>(action);
 	}
 
-	public static <T> Node<T> action(String debugMessage, INodeStatusActionFunction<T> action) {
-		return debug(debugMessage, action(action));
+	public static <T> Node<T> action2(String debugMessage, INodeStatusActionFunction<T> action) {
+		return debug(debugMessage, action2(action));
 	}
 
 	public static <T> Condition<T> condition(IBooleanConditionFunction<T> condition) {
@@ -79,6 +82,14 @@ public final class BehaviorTreeHelper {
 		return new Inverter<>(child);
 	}
 
+	public static <T> IgnoreFailure<T> ignoreFailure(Node<T> child) {
+		return new IgnoreFailure<>(child);
+	}
+
+	public static <T> ResetAfter<T> resetAfter(INodeStatusActionConsumer<T> reset, Node<T> child) {
+		return new ResetAfter<>(reset, child);
+	}
+
 	@SafeVarargs
 	public static <T> Parallel<T> parallel(Parallel.Policy successPolicy, boolean preemptive, Node<T>... children) {
 		return new Parallel<>(successPolicy, preemptive, children);
@@ -90,6 +101,15 @@ public final class BehaviorTreeHelper {
 
 	public static <T> Repeat<T> repeat(IBooleanConditionFunction<T> condition, Node<T> child) {
 		return new Repeat<>(condition, child);
+	}
+
+	public static <T> RepeatCount<T> repeatLoop(IIntegerSupplier<T> times, Node<T> child) {
+		return new RepeatCount<>(times, child);
+
+	}
+
+	public static <T> RepeatCount<T> repeatLoop(int times, Node<T> child) {
+		return new RepeatCount<>(c -> times, child);
 	}
 
 	@SafeVarargs

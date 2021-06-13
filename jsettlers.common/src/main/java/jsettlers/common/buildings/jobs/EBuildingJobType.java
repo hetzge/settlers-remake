@@ -124,25 +124,7 @@ public enum EBuildingJobType {
 	PRE_SEARCH,
 
 	/**
-	 * Searches a given search type with the InAreaFinder. The search center is given by the working center of the building.
-	 * <p>
-	 * Parameters: <br>
-	 * search (type to be searched @see {@link ESearchType}), <br>
-	 * dx, dy (position the movable will be showed later with SHOW)
-	 * <p>
-	 * This job always fails if the working radius is 0.
-	 * <p>
-	 * Success: A path to the searched thing has been found.
-	 * <p>
-	 * Fail: If the searched thing was not found.
-	 * 
-	 * @see ESearchType
-	 * @see jsettlers.common.buildings.BuildingVariant#getWorkRadius()
-	 */
-	PRE_SEARCH_IN_AREA,
-
-	/**
-	 * Follows the pre-calculated path that has been searched with {@link #PRE_SEARCH} or {@link #PRE_SEARCH_IN_AREA}
+	 * Follows the pre-calculated path that has been searched with {@link #PRE_SEARCH}
 	 */
 	FOLLOW_SEARCHED,
 
@@ -154,24 +136,6 @@ public enum EBuildingJobType {
 	 * Fail: The position is unreachable.
 	 */
 	GO_TO,
-
-	/**
-	 * Goes to the dock.
-	 * <p>
-	 * Success: The settler is at the position
-	 * <p>
-	 * Fail: The position is unreachable.
-	 */
-	GO_TO_DOCK,
-
-	/**
-	 * Build a ship.
-	 * <p>
-	 * Success: always
-	 * <p>
-	 * Fail: never
-	 */
-	BUILD_SHIP,
 
 	/**
 	 * Look at
@@ -268,16 +232,6 @@ public enum EBuildingJobType {
 	SMOKE_OFF,
 
 	/**
-	 * Building starts working, e.g. for a mill.
-	 */
-	START_WORKING,
-
-	/**
-	 * Building stops working, e.g. for a mill.
-	 */
-	STOP_WORKING,
-
-	/**
 	 * Places a pig at (dx, dy)
 	 */
 	PIG_PLACE,
@@ -321,19 +275,4 @@ public enum EBuildingJobType {
 	 * no donkey yet, one will appear.
 	 */
 	GROW_DONKEY,
-
-	/**
-	 * Checks if a there is a human and player controlled settler at the given position, fails otherwise
-	 */
-	CAN_HEAL,
-
-	/**
-	 * Searches for wounded settlers in its vicinity and call the nearest one to attend treatment at the given position
-	 */
-	CALL_WOUNDED,
-
-	/**
-	 * Set the HP to maximum of a human and player controlled settler at the given position.
-	 */
-	HEAL,
 }

@@ -1,5 +1,6 @@
 package jsettlers.logic.movable.other;
 
+import jsettlers.algorithms.simplebehaviortree.Root;
 import jsettlers.common.menu.messages.SimpleMessage;
 import jsettlers.common.movable.EEffectType;
 import jsettlers.common.movable.EMovableType;
@@ -14,21 +15,19 @@ public class AttackableMovable extends Movable implements IAttackableMovable {
 
 	protected boolean attackable;
 
-	public AttackableMovable(AbstractMovableGrid grid, EMovableType movableType, ShortPoint2D position, Player player, Movable movable) {
-		super(grid, movableType, position, player, movable);
+	public AttackableMovable(AbstractMovableGrid grid, EMovableType movableType, ShortPoint2D position, Player player, Movable movable, Root<? extends AttackableMovable> behaviour) {
+		super(grid, movableType, position, player, movable, behaviour);
 
 		attackable = movableType.attackable;
 	}
 
 	@Override
 	public void receiveHit(float hitStrength, ShortPoint2D attackerPos, byte attackingPlayer) {
-		if (strategy.receiveHit()) {
-			if(hasEffect(EEffectType.SHIELDED)) hitStrength *= EEffectType.SHIELDED_DAMAGE_FACTOR;
+		if(hasEffect(EEffectType.SHIELDED)) hitStrength *= EEffectType.SHIELDED_DAMAGE_FACTOR;
 
-			this.health -= hitStrength;
-			if (health <= 0) {
-				this.kill();
-			}
+		this.health -= hitStrength;
+		if (health <= 0) {
+			this.kill();
 		}
 
 		player.showMessage(SimpleMessage.attacked(attackingPlayer, attackerPos));
@@ -52,8 +51,7 @@ public class AttackableMovable extends Movable implements IAttackableMovable {
 	 * 		The other movable.
 	 */
 	@Override
-	public final void informAboutAttackable(IAttackable other) {
-		strategy.informAboutAttackable(other);
+	public void informAboutAttackable(IAttackable other) {
 	}
 
 }

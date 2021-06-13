@@ -56,12 +56,9 @@
 	TAKE_REQUESTED|
 	DROP|
 	PRE_SEARCH|
-	PRE_SEARCH_IN_AREA|
 	REQUEST|
 	FOLLOW_SEARCHED|
 	GO_TO|
-	GO_TO_DOCK|
-	BUILD_SHIP|
 	LOOK_AT|
 	PLAY_ACTION1|
 	PLAY_ACTION2|
@@ -74,8 +71,6 @@
 	TRY_TAKING_FOOD|
 	SMOKE_ON|
 	SMOKE_OFF|
-	START_WORKING|
-	STOP_WORKING|
 	REMOTETAKE|
 	PIG_PLACE|
 	PIG_REMOVE|
@@ -84,10 +79,7 @@
 	POP_TOOL|
 	POP_WEAPON|
 	DROP_POPPED|
-	GROW_DONKEY|
-	CALL_WOUNDED|
-	CAN_HEAL|
-	HEAL)
+	GROW_DONKEY)
 ">
 <!ENTITY % direction "(EAST| SOUTH_EAST| SOUTH_WEST| WEST | NORTH_WEST | NORTH_EAST)">
 
@@ -123,7 +115,7 @@
 )">
 <!ENTITY % boolean "(true|false)">
 
-<!ELEMENT building (ground+, blocked+, door, constructionStack+, requestStack*, offerStack*, bricklayer+, flag, buildmark*, workcenter?, image*, occupyer*, startjob?, job*) >
+<!ELEMENT building (ground+, blocked+, door, constructionStack+, requestStack*, offerStack*, bricklayer+, flag, buildmark*, workcenter?, healspot?, image*, occupyer*, startjob?, job*) >
 
 <!ATTLIST building
    	worker CDATA #REQUIRED
@@ -237,6 +229,12 @@
 
 <!ELEMENT buildmark EMPTY>
 <!ATTLIST buildmark
+   dx CDATA #REQUIRED
+   dy CDATA #REQUIRED
+>
+
+<!ELEMENT healspot EMPTY>
+<!ATTLIST healspot
    dx CDATA #REQUIRED
    dy CDATA #REQUIRED
 >
