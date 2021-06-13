@@ -74,4 +74,9 @@ public class PlayerPacket extends Packet {
 		PlayerPacket other = (PlayerPacket) obj;
 		return Objects.equals(player, other.player);
 	}
+
+	@Override
+	public String toString() {
+		return String.format("PlayerPacket [player=%s]", player);
+	}
 }

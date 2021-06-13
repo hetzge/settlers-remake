@@ -102,6 +102,7 @@ public final class Lobby {
 			player.setType(ELobbyPlayerType.HUMAN);
 			player.setState(ELobbyPlayerState.UNKNOWN);
 			sendMatchUpdate(ENetworkKey.UPDATE_MATCH, match);
+			sendPlayerUpdate(match, player);
 			sendJoinMatch(user, match);
 			// Set logger
 			user.getChannel().setLogger(match.createLogger());

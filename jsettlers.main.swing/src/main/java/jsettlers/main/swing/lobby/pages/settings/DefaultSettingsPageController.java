@@ -1,6 +1,7 @@
 package jsettlers.main.swing.lobby.pages.settings;
 
 import jsettlers.main.swing.lobby.UiController;
+import jsettlers.main.swing.lobby.organisms.GeneralSettingsPanel;
 import jsettlers.main.swing.settings.SettingsManager;
 
 public class DefaultSettingsPageController implements SettingsPageController {
@@ -14,22 +15,24 @@ public class DefaultSettingsPageController implements SettingsPageController {
 	}
 
 	public SettingsPagePanel init(SettingsManager manager) {
-		this.panel.setPlayerName(manager.getPlayer().getName());
-		this.panel.setVolume(manager.getVolume());
-		this.panel.setFpsLimit(manager.getFpsLimit());
-		this.panel.setBackend(manager.getBackend().name());
-		this.panel.setGuiScale(manager.getGuiScale());
+		final GeneralSettingsPanel generalSettingsPanel = this.panel.getGeneralSettingsPanel();
+		generalSettingsPanel.setPlayerName(manager.getPlayer().getName());
+		generalSettingsPanel.setVolume(manager.getVolume());
+		generalSettingsPanel.setFpsLimit(manager.getFpsLimit());
+		generalSettingsPanel.setBackend(manager.getBackend().name());
+		generalSettingsPanel.setGuiScale(manager.getGuiScale());
 		return this.panel;
 	}
 
 	@Override
 	public void save() {
-		SettingsManager settingsManager = SettingsManager.getInstance();
-		settingsManager.setUserName(panel.getPlayerName());
-		settingsManager.setVolume(panel.getVolume());
-		settingsManager.setFpsLimit(panel.getFpsLimit());
-		settingsManager.setBackend(panel.getBackend());
-		settingsManager.setGuiScale(panel.getGuiScale());
+		final GeneralSettingsPanel generalSettingsPanel = this.panel.getGeneralSettingsPanel();
+		final SettingsManager settingsManager = SettingsManager.getInstance();
+		settingsManager.setUserName(generalSettingsPanel.getPlayerName());
+		settingsManager.setVolume(generalSettingsPanel.getVolume());
+		settingsManager.setFpsLimit(generalSettingsPanel.getFpsLimit());
+		settingsManager.setBackend(generalSettingsPanel.getBackend());
+		settingsManager.setGuiScale(generalSettingsPanel.getGuiScale());
 		ui.showHomePage();
 	}
 

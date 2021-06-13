@@ -40,7 +40,6 @@ import jsettlers.logic.map.loading.newmap.MapFileHeader;
 import jsettlers.logic.map.loading.savegame.SavegameLoader;
 import jsettlers.logic.player.PlayerSetting;
 import jsettlers.main.JSettlersGame;
-import jsettlers.main.swing.JSettlersFrame;
 import jsettlers.main.swing.lobby.UiController;
 import jsettlers.main.swing.lobby.pages.maps.MapsPagePanel;
 import jsettlers.main.swing.lobby.pages.maps.SingleplayerCreateMatchMapsPageController;

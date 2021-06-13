@@ -3,6 +3,7 @@ package jsettlers.main.swing.lobby.organisms;
 import java.awt.Dimension;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
+import java.awt.GridLayout;
 import java.awt.image.BufferedImage;
 
 import javax.swing.JPanel;
@@ -28,11 +29,13 @@ public class MatchSettingsPanel extends JPanel {
 		int y = 0;
 		add(this.mapLabel = new Label("..."), createConstraints(y++));
 		add(this.mapImage = new ImagePanel(), createConstraints(y++));
-		add(new Label(Labels.getString("join-game-panel-peace-time")), createConstraints(y++));
-		add(this.peaceTimeIntegerSpinner = new IntegerSpinner(10, 0, 9999, 1), createConstraints(y++));
-		add(new Label(Labels.getString("join-game-panel-start-resources")), createConstraints(y++));
-		add(this.startResourcesDropDown = new ComboBox<>(ELobbyResourceAmount.values(), ELobbyResourceAmount.MEDIUM_GOODS, it -> Labels.getString("map-start-resources-" + it.name())),
-				createConstraints(y++));
+
+		final JPanel settingsPanel = new JPanel(new GridLayout(0, 2, 10, 10));
+		settingsPanel.add(new Label(Labels.getString("join-game-panel-peace-time")));
+		settingsPanel.add(this.peaceTimeIntegerSpinner = new IntegerSpinner(10, 0, 9999, 1));
+		settingsPanel.add(new Label(Labels.getString("join-game-panel-start-resources")));
+		settingsPanel.add(this.startResourcesDropDown = new ComboBox<>(ELobbyResourceAmount.values(), ELobbyResourceAmount.MEDIUM_GOODS, it -> Labels.getString("map-start-resources-" + it.name())));
+		add(settingsPanel, createConstraints(y++));
 		this.mapImage.setDimension(new Dimension(300, 150));
 		this.startResourcesDropDown.setPreferredSize(new Dimension(0, 35));
 		this.peaceTimeIntegerSpinner.addChangeListener(event -> controller.setPeaceTime(peaceTimeIntegerSpinner.getIntegerValue()));

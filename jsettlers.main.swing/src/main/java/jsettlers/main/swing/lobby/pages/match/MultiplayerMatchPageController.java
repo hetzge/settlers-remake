@@ -64,12 +64,15 @@ public class MultiplayerMatchPageController implements MatchPageController {
 		this.panel.getMatchSettingsPanel().setMapInformation(this.mapLoader);
 		// Setup network
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.CHAT_MESSAGE, ChatMessagePacket.class, packet -> {
+			this.panel.getChatPanel().addMessage(packet.toString());
 			this.panel.getChatPanel().addMessage(packet.getMessage());
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_MATCH, MatchPacket.class, packet -> {
+			this.panel.getChatPanel().addMessage(packet.toString());
 			updateMatch(packet.getMatch());
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.UPDATE_PLAYER, PlayerPacket.class, packet -> {
+			this.panel.getChatPanel().addMessage(packet.toString());
 			final Player player = packet.getPlayer();
 			final int index = player.getIndex();
 			this.players[index] = player;
@@ -80,12 +83,15 @@ public class MultiplayerMatchPageController implements MatchPageController {
 			playerPanel.setTeam(player.getTeam());
 			playerPanel.setType(player.getType());
 			playerPanel.setEnabled(canEditPlayer(player));
+			playerPanel.setReadyEnabled(host || isCurrentPlayer(player));
 			updateStartButton();
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.KICK_USER, BooleanMessagePacket.class, packet -> {
+			this.panel.getChatPanel().addMessage(packet.toString());
 			cancel();
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.MATCH_STARTED, MatchPacket.class, packet -> {
+			this.panel.getChatPanel().addMessage(packet.toString());
 			this.client.removeListener(NetworkConstants.ENetworkKey.MATCH_STARTED);
 			final Player currentPlayer = packet.getMatch().getPlayer(this.client.getUserId()).orElseThrow(() -> new IllegalStateException("Current player is not part of the match"));
 			final PlayerSetting[] playerSettings = MatchPageUtils.toPlayerSettings(packet.getMatch().getPlayers());
@@ -95,9 +101,11 @@ public class MultiplayerMatchPageController implements MatchPageController {
 			this.client.startTimeSynchronization();
 		}));
 		this.client.registerListener(new SimpleListener<>(ENetworkKey.SYNCHRONOUS_TASK, SyncTasksPacket.class, packet -> {
+			this.panel.getChatPanel().addMessage(packet.toString());
 			((ISyncTasksPacketScheduler) this.client.getGameClock()).scheduleSyncTasksPacket(packet);
 		}));
 		this.client.registerRejectReceiver(packet -> {
+			this.panel.getChatPanel().addMessage(packet.toString());
 			this.panel.getChatPanel().addMessage(Labels.getString("network-message-" + packet.getRejectedKey().name()));
 		});
 		return panel;
@@ -120,11 +128,16 @@ public class MultiplayerMatchPageController implements MatchPageController {
 	}
 
 	private boolean canEditPlayer(Player player) {
-		return host || (this.client.getUserId().equals(player.getUserId().orElse(null)) && !player.isReady());
+		return host || (isCurrentPlayer(player) && !player.isReady());
+	}
+
+	private boolean isCurrentPlayer(Player player) {
+		return this.client.getUserId().equals(player.getUserId().orElse(null));
 	}
 
 	private void updateStartButton() {
-		this.panel.showStartButton(Arrays.stream(MultiplayerMatchPageController.this.players).allMatch(Player::isReady));
+		final boolean areAllPlayersReady = Arrays.stream(MultiplayerMatchPageController.this.players).allMatch(Player::isReady);
+		this.panel.showStartButton(host && areAllPlayersReady);
 	}
 
 	@Override
@@ -239,7 +252,7 @@ public class MultiplayerMatchPageController implements MatchPageController {
 		@Override
 		public boolean haveAllPlayersStartFinished() {
 			return Arrays.stream(MultiplayerMatchPageController.this.players)
-					.filter(player -> !player.getType().isEmpty())
+					.filter(player -> player.getType().isHuman())
 					.map(Player::getState)
 					.allMatch(ELobbyPlayerState.INGAME::equals);
 		}

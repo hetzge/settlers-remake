@@ -65,4 +65,9 @@ public class UpdatePlayerPacket extends Packet {
 		final UpdatePlayerPacket other = (UpdatePlayerPacket) obj;
 		return playerIndex == other.playerIndex && value == other.value;
 	}
+
+	@Override
+	public String toString() {
+		return String.format("UpdatePlayerPacket [playerIndex=%s, value=%s]", playerIndex, value);
+	}
 }

@@ -82,4 +82,9 @@ public final class MatchPacket extends Packet {
 		MatchPacket other = (MatchPacket) obj;
 		return Objects.equals(match, other.match);
 	}
+
+	@Override
+	public String toString() {
+		return String.format("MatchPacket [match=%s]", match);
+	}
 }

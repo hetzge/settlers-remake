@@ -135,6 +135,10 @@ public class PlayersPanel extends JPanel {
 			this.typeComboBox.setEnabled(enabled);
 			this.civilisationComboBox.setEnabled(enabled);
 			this.teamSpinner.setEnabled(enabled);
+			setReadyEnabled(enabled);
+		}
+		
+		public void setReadyEnabled(boolean enabled) {
 			this.readyButton.setEnabled(enabled);
 		}
 	}
